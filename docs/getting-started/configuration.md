@@ -2,6 +2,10 @@
 alias:
   - config
   - configuration
+tags:
+  - MkDocs
+  - GitHub Pages
+  - CI/CD
 ---
 
 # 知識庫設定與 GitHub Pages 部署指南
@@ -28,6 +32,7 @@ windcold-kb/
 │   ├── notes/                # 分類筆記
 │   │   ├── example.md        # 筆記範本
 │   │   └── workflow.md       # 日常工作流
+│   ├── tags.md               # 全域標籤索引頁
 │   └── about.md              # 關於頁面
 ├── .gitignore
 ├── .markdownlint.yaml        # Markdownlint 規則設定檔
@@ -80,10 +85,11 @@ windcold-kb/
 
 ## 4. 外掛程式與擴充功能清單 (Plugins & Extensions)
 
-本站已整合並啟用 11 項實用外掛，大幅擴充知識庫功能：
+本站已整合並啟用 12 項實用外掛，大幅擴充知識庫功能：
 
 | 外掛 / 擴充名稱 | 類型 | 說明 |
 | :--- | :--- | :--- |
+| **`tags`** | Plugin | Material 內建標籤外掛，支援在 front-matter 加入 `tags:` 與產生標籤索引頁。 |
 | **`git-committers`** | Plugin | 透過 GitHub API 自動在每篇筆記下方顯示貢獻者頭像與個人檔案連結。 |
 | **`git-revision-date-localized`** | Plugin | 自動抓取 Git 提交時間，顯示在地化修訂時間（如「3 小時前」）。 |
 | **`git-latest-changes`** | Plugin | 在任意頁面輸入 `\{\{ latest_changes \}\}` 即可產生全站最新提交異動表格。 |

@@ -50,6 +50,8 @@ theme:
 
   icon:
     repo: fontawesome/brands/github
+    tag:
+      default: material/tag
 
 markdown_extensions:
   - admonition
@@ -88,6 +90,7 @@ markdown_extensions:
 
 plugins:
   - search
+  - tags
   - git-committers:
       repository: windcoldchen/windcold-kb
       branch: main
@@ -97,6 +100,7 @@ plugins:
       type: timeago
       locale: zh
       fallback_to_build_date: true
+      enable_git_follow: false
   - git-latest-changes:
       limit_to_docs_dir: true
   - minify:
@@ -113,6 +117,7 @@ plugins:
           - index.md: 知識庫首頁
           - getting-started/*.md: 入門與部署設定
           - notes/*.md: 技術筆記與日常工作流
+          - tags.md: 標籤索引
           - about.md: 關於本站
   - redirects:
       redirect_maps: {}
@@ -133,4 +138,5 @@ nav:
   - 知識筆記:
       - 範例筆記: notes/example.md
       - 開發工作流: notes/workflow.md
+  - 標籤索引: tags.md
   - 關於: about.md
