@@ -8,34 +8,65 @@
 
 ```mermaid
 flowchart TD
-    Idea([靈感或學習發現]) --> Draft[在 docs/ 下新增 .md]
+    Idea([靈感或學習發現]) --> Branch[開立新分支 git checkout -b docs/...]
+    Branch --> Draft[在 docs/ 下新增或編輯 .md]
     Draft --> Local[本地執行 mkdocs serve 即時預覽]
     Local --> Polish[調整格式、提示方塊與導覽選單]
-    Polish --> Commit[Git Commit & Push 到 main]
-    Commit --> Done([GitHub Actions 自動更新知識庫])
+    Polish --> Push[Commit & Push 分支到 GitHub]
+    Push --> PR[建立 Pull Request]
+    PR --> CI{CI 自動執行<br/>mkdocs build --strict}
+    CI -->|失敗 ❌| Fix[本地修正後再次推送]
+    Fix --> PR
+    CI -->|通過 ✅| Merge[點擊 Merge pull request]
+    Merge --> Deploy([GitHub Actions 自動部署至 GitHub Pages])
 ```
 
 ---
 
-## 增添新頁面步驟
+## 增添新頁面完整步驟
 
-1. **建立檔案**：在 `docs/` 下建立對應的 Markdown 檔案，例如 `docs/notes/my-new-topic.md`。
-2. **在 `mkdocs.yml` 註冊選單**：
-   開啟 `mkdocs.yml`，在 `nav:` 區塊加入對應的路徑：
-   ```yaml
-   nav:
-     - 首頁: index.md
-     - 知識筆記:
-         - 範例筆記: notes/example.md
-         - 新主題筆記: notes/my-new-topic.md
-   ```
-3. **即時檢視**：終端機執行 `mkdocs serve`，前往瀏覽器預覽效果。
-4. **推送更新**：
-   ```bash
-   git add docs/notes/my-new-topic.md mkdocs.yml
-   git commit -m "docs: 新增新主題筆記"
-   git push origin main
-   ```
+### 1. 開立新分支
+```bash
+git checkout -b docs/my-new-topic
+```
+
+### 2. 建立筆記檔案
+在 `docs/` 下建立對應的 Markdown 檔案，例如 `docs/notes/my-new-topic.md`。
+
+### 3. 在 `mkdocs.yml` 註冊選單
+開啟 `mkdocs.yml`，在 `nav:` 區塊加入對應的路徑：
+
+```yaml
+nav:
+  - 首頁: index.md
+  - 知識筆記:
+      - 範例筆記: notes/example.md
+      - 新主題筆記: notes/my-new-topic.md
+```
+
+### 4. 本地即時預覽與檢查
+啟動本地伺服器並進行嚴格模式檢查：
+
+```bash
+# 啟動預覽
+mkdocs serve
+
+# 嚴格模式檢查（確認無語法錯誤或斷鏈）
+mkdocs build --strict
+```
+
+### 5. 提交並推送分支
+```bash
+git add .
+git commit -m "docs: 新增新主題筆記"
+git push -u origin docs/my-new-topic
+```
+
+### 6. 發起 PR 與自動部署
+1. 前往 GitHub 倉庫頁面發起 Pull Request 指向 `main`。
+2. GitHub Actions 會自動執行 `CI - Syntax & Build Check` 驗證。
+3. 綠燈通過後，點擊 **Merge pull request** ➔ **Confirm merge**。
+4. 合併後會自動觸發 `Deploy MkDocs to GitHub Pages`，約 1 分鐘內即可在線上知識庫查閱最新成果！
 
 ---
 

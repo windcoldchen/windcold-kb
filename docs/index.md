@@ -2,7 +2,7 @@
 
 > 記錄技術經驗、架構思維與日常工具的個人數位花園。
 
-本知識庫使用 [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) 搭建，並透過 **GitHub Actions** 自動化發布至 **GitHub Pages**。
+本知識庫使用 [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) 搭建，並透過 **GitHub Actions** 進行嚴格語法檢核與自動化發布至 **GitHub Pages**。
 
 ---
 
@@ -46,20 +46,21 @@
 
 ---
 
-## :material-lightning-bolt: 核心特色
+## :material-lightning-bolt: 核心特色與發布流程
 
 ```mermaid
 graph LR
-    A[Markdown 筆記] --> B(Git Commit & Push)
-    B --> C[GitHub Actions 自動建置]
-    C --> D[GitHub Pages 託管]
-    D --> E((即時在線知識庫))
+    A[Markdown 筆記] --> B(開立分支 & 建立 PR)
+    B --> C{CI 語法檢查<br/>mkdocs build --strict}
+    C -->|通過| D[合併至 main]
+    D --> E[GitHub Pages 自動發布]
+    E --> F((即時在線知識庫))
 ```
 
 - **全域即時搜尋**：支援關鍵字即時提示、語意高亮與分享連結。
 - **深色 / 淺色模式切換**：隨系統設定自動切換，亦可手動一鍵點選。
 - **程式碼語法支援**：行號顯示、行標記、複製按鈕以及代碼註解。
-- **雙向互動與美觀排版**：Mermaid 流程圖、數學公式 LaTeX、卡片排版。
+- **品質守護 CI/CD**：開立 PR 自動執行嚴格語法建置檢查，通過後自動部署上線。
 
 ---
 
@@ -70,20 +71,19 @@ graph LR
 === "使用虛擬環境 (Virtualenv)"
 
     ```bash
-    # 建立並啟動虛擬環境
-    python3 -m venv .venv
+    # 啟動現有虛擬環境
     source .venv/bin/activate
-
-    # 安裝依賴
-    pip install -r requirements.txt
 
     # 啟動本地開發伺服器
     mkdocs serve
     ```
 
-=== "使用 pip 直接啟動"
+=== "新環境建立"
 
     ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install -r requirements.txt
     mkdocs serve
     ```
 
