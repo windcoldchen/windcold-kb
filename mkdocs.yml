@@ -69,6 +69,7 @@ markdown_extensions:
       alternate_style: true
   - pymdownx.tasklist:
       custom_checkbox: true
+  - markdown_checklist.extension
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
@@ -87,6 +88,37 @@ markdown_extensions:
 
 plugins:
   - search
+  - git-committers:
+      repository: windcoldchen/windcold-kb
+      branch: main
+      token: !ENV [MKDOCS_GIT_COMMITTERS_APIKEY, !ENV [GITHUB_TOKEN, ""]]
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+      locale: zh
+      fallback_to_build_date: true
+  - git-latest-changes:
+      limit_to_docs_dir: true
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+  - ai-summary:
+      api: chatgpt
+      prompt: "請用繁體中文將以下內容總結為 200 字以內的摘要："
+  - llmstxt:
+      full_output: llms-full.txt
+      sections:
+        文件與指南:
+          - index.md: 知識庫首頁
+          - getting-started/*.md: 入門與部署設定
+          - notes/*.md: 技術筆記與日常工作流
+          - about.md: 關於本站
+  - redirects:
+      redirect_maps: {}
+  - autorefs
+  - autolinks
+  - alias
 
 extra:
   social:

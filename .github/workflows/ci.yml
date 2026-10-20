@@ -26,8 +26,11 @@ jobs:
     name: MkDocs Build Check
     runs-on: ubuntu-latest
     steps:
-      - name: 檢出儲存庫代碼 (Checkout)
+      - name: 檢出儲存庫代碼 (Checkout，需完整歷史以支援 git 外掛)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref }}
 
       - name: 設定 Python 環境
         uses: actions/setup-python@v5
@@ -39,4 +42,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: 檢查 MkDocs 語法與站點建置 (嚴格模式)
+        env:
+          MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
+          DISABLE_MKDOCS_2_WARNING: "true"
         run: mkdocs build --strict

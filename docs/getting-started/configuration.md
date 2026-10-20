@@ -1,6 +1,12 @@
+---
+alias:
+  - config
+  - configuration
+---
+
 # 知識庫設定與 GitHub Pages 部署指南
 
-本頁面詳細介紹如何維護此知識庫，包含 GitHub Actions CI/CD 自動化設定、Markdown Lint 檢查與分支保護規範。
+本頁面詳細介紹如何維護此知識庫，包含 GitHub Actions CI/CD 自動化設定、Markdown Lint 檢查、外掛清單與分支保護規範。
 
 ---
 
@@ -72,7 +78,27 @@ windcold-kb/
 
 ---
 
-## 4. GitHub Actions 工作流程解析
+## 4. 外掛程式與擴充功能清單 (Plugins & Extensions)
+
+本站已整合並啟用 11 項實用外掛，大幅擴充知識庫功能：
+
+| 外掛 / 擴充名稱 | 類型 | 說明 |
+| :--- | :--- | :--- |
+| **`git-committers`** | Plugin | 透過 GitHub API 自動在每篇筆記下方顯示貢獻者頭像與個人檔案連結。 |
+| **`git-revision-date-localized`** | Plugin | 自動抓取 Git 提交時間，顯示在地化修訂時間（如「3 小時前」）。 |
+| **`git-latest-changes`** | Plugin | 在任意頁面輸入 `\{\{ latest_changes \}\}` 即可產生全站最新提交異動表格。 |
+| **`minify`** | Plugin | 建置時自動壓縮 HTML、CSS 與 JavaScript 靜態檔案，提升載入速度。 |
+| **`ai-summary`** | Plugin | 支援文章 meta 加入 `include: [ai-summary]` 自動由 AI 產出文章前言摘要。 |
+| **`llmstxt`** | Plugin | 產出標準 `/llms.txt` 與 `/llms-full.txt`，供 AI Agent 快速檢索知識庫。 |
+| **`redirects`** | Plugin | 支援設定 URL 重新導向對應表，防止更改檔案名稱時舊連結失效。 |
+| **`autorefs`** | Plugin | 自動交叉參照 Markdown 錨點、程式碼符號與標題。 |
+| **`autolinks`** | Plugin | 自動解析頁面相對連結，直接填寫目標檔名即可自動關聯。 |
+| **`alias`** | Plugin | 支援文章設定別名，透過 `\[\[別名\]\]` 或 `\[\[別名\|自訂文字\]\]` 進行雙向引用。 |
+| **`markdown-checklist`** | Extension | 提供 GFM 核取清單語法（`- [ ]`、`- [x]`）渲染支援。 |
+
+---
+
+## 5. GitHub Actions 工作流程解析
 
 專案採用職責分離的雙工作流程設計：
 
@@ -108,12 +134,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 完整抓取 Git 歷史紀錄以支援 git-* 外掛
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
       - run: pip install -r requirements.txt
       - name: 檢查 MkDocs 語法與站點建置 (嚴格模式)
+        env:
+          MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
+          DISABLE_MKDOCS_2_WARNING: "true"
         run: mkdocs build --strict
 ```
 
@@ -146,12 +177,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 完整抓取 Git 歷史紀錄以支援 git-* 外掛
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
       - run: pip install -r requirements.txt
       - run: mkdocs build
+        env:
+          MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
+          DISABLE_MKDOCS_2_WARNING: "true"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./site
@@ -161,7 +197,7 @@ jobs:
 
 ---
 
-## 5. 本地常用指令
+## 6. 本地常用指令
 
 | 指令 | 說明 |
 | :--- | :--- |
