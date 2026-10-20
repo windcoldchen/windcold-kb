@@ -11,7 +11,7 @@
 - **Material Design**：現代化精美介面、繁體中文支援、深色 / 淺色主題隨心切換。
 - **全域極速搜尋**：即時字詞建議、內容高亮與分享。
 - **豐富語法擴充**：支援程式碼分頁、複製按鈕、程式碼註解、Admonition 提示方塊、Mermaid 圖表。
-- **嚴格品質把關**：開立 PR 時自動執行嚴格語法與靜態建置檢查，通過後才允許合併。
+- **嚴格品質把關**：開立 PR 時自動執行 Markdown Lint 與靜態建置檢查，通過後才允許合併。
 - **自動化發布**：合併至 `main` 分支時由 GitHub Actions 自動發布至 GitHub Pages。
 
 ---
@@ -23,17 +23,21 @@
 ```mermaid
 graph LR
     A[開立分支撰寫筆記] --> B[建立 PR to main]
-    B --> C{CI 語法檢查<br/>mkdocs build --strict}
-    C -->|失敗| D[修正並重新推送]
-    D --> B
-    C -->|通過| E[允許 Merge to main]
-    E --> F[CD 自動部署至 GitHub Pages]
+    B --> C1[Markdown Lint 檢查]
+    B --> C2[MkDocs 嚴格建置檢查]
+    C1 --> D{雙重檢查通過?}
+    C2 --> D
+    D -->|失敗| E[修正並重新推送]
+    E --> B
+    D -->|通過| F[允許 Merge to main]
+    F --> G[CD 自動部署至 GitHub Pages]
 ```
 
-1. **PR 階段（CI 語法檢查）**：
+1. **PR 階段（CI 語法與樣式檢查）**：
    - 建立 PR 時觸發 [ci.yml](.github/workflows/ci.yml)。
-   - 執行 `mkdocs build --strict` 進行語法與斷鏈嚴格檢查。
-   - 檢查通過後 GitHub 才會解鎖合併按鈕（Required Status Check）。
+   - **Markdown Lint Check**：使用 `markdownlint-cli2` 依據 [.markdownlint.yaml](.markdownlint.yaml) 檢查 Markdown 格式規範。
+   - **MkDocs Build Check**：執行 `mkdocs build --strict` 進行語法與斷鏈嚴格檢查。
+   - 兩項檢查皆通過後，GitHub 才會解鎖合併按鈕（Required Status Checks）。
 2. **合併階段（CD 自動部署）**：
    - PR 合併至 `main` 時觸發 [deploy.yml](.github/workflows/deploy.yml)。
    - 產出純靜態檔案並透過 GitHub Pages 官方 Artifact 機制部署上線。
@@ -63,9 +67,16 @@ mkdocs serve
 
 開啟瀏覽器前往 [http://127.0.0.1:8000](http://127.0.0.1:8000) 即可即時預覽。修改任何 `.md` 或 `mkdocs.yml` 會自動重新載入（Hot Reload）。
 
-### 4. 嚴格模式建置檢查
+### 4. 本地檢查語法與 Markdown Lint
 
 ```bash
+# 執行 Markdown Lint 檢查
+npx markdownlint-cli2 "**/*.md"
+
+# 自動修正 Markdown 格式問題
+npx markdownlint-cli2 --fix "**/*.md"
+
+# MkDocs 嚴格模式建置檢查
 mkdocs build --strict
 ```
 
@@ -77,14 +88,16 @@ mkdocs build --strict
 # 1. 切換至新分支
 git checkout -b docs/add-new-note
 
-# 2. 撰寫筆記並提交
+# 2. 撰寫筆記並確認格式
+npx markdownlint-cli2 --fix "**/*.md"
+mkdocs build --strict
+
+# 3. 提交並推送分支至 GitHub
 git add .
 git commit -m "docs: 新增某某筆記"
-
-# 3. 推送分支至 GitHub
 git push -u origin docs/add-new-note
 
-# 4. 發起 PR 並由 CI 自動檢核，通過後點擊 Merge 即可發布
+# 4. 發起 PR，等待 CI 檢核通過後點擊 Merge 即可發布
 ```
 
 ---
@@ -95,7 +108,7 @@ git push -u origin docs/add-new-note
 windcold-kb/
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml            # PR 語法與建置檢查 (CI)
+│       ├── ci.yml            # PR 語法與 Markdown Lint 檢查 (CI)
 │       └── deploy.yml        # main 分支 Pages 部署 (CD)
 ├── docs/                     # 存放 Markdown 筆記
 │   ├── getting-started/      # 入門與語法指引
@@ -107,7 +120,10 @@ windcold-kb/
 │   ├── about.md              # 關於本站
 │   └── index.md              # 首頁
 ├── .gitignore
+├── .markdownlint.yaml        # Markdownlint 規範設定
+├── .markdownlint-cli2.yaml   # Markdownlint-cli2 執行設定
 ├── mkdocs.yml                # MkDocs 核心設定
+├── package.json              # Lint 腳本配置
 ├── README.md                 # 專案說明文件
-└── requirements.txt          # 依賴清單
+└── requirements.txt          # Python 依賴清單
 ```

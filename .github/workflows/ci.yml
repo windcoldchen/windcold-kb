@@ -1,4 +1,4 @@
-name: CI - Syntax & Build Check
+name: CI - Syntax & Lint Check
 
 on:
   pull_request:
@@ -10,8 +10,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  syntax-check:
-    name: Syntax & Build Check
+  markdown-lint:
+    name: Markdown Lint Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: 檢出儲存庫代碼 (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 執行 Markdown Lint 語法檢查
+        uses: DavidAnson/markdownlint-cli2-action@v19
+        with:
+          globs: "**/*.md"
+
+  build-check:
+    name: MkDocs Build Check
     runs-on: ubuntu-latest
     steps:
       - name: 檢出儲存庫代碼 (Checkout)
@@ -26,5 +38,5 @@ jobs:
       - name: 安裝相依套件
         run: pip install -r requirements.txt
 
-      - name: 檢查 Markdown 語法與站點建置 (嚴格模式)
+      - name: 檢查 MkDocs 語法與站點建置 (嚴格模式)
         run: mkdocs build --strict

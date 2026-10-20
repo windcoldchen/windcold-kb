@@ -1,0 +1,33 @@
+# markdownlint configuration
+# https://github.com/DavidAnson/markdownlint
+
+default: true
+
+# 關閉單行字數長度限制（包含 URL、表格與中文長句）
+MD013: false
+
+# 允許特定的 HTML 標籤（Material for MkDocs Grid Cards 與元素）
+MD033:
+  allowed_elements:
+    - div
+    - span
+    - details
+    - summary
+    - br
+
+# 程式碼區塊樣式（Material 分頁標籤 === 語法縮排相容）
+MD046: false
+
+# 列表標記後空格數（Material Grid Cards 使用 -   語法）
+MD030: false
+
+# 標題標點符號限制（移除冒號，允許 Material 圖示例如 :material-book:）
+MD026:
+  punctuation: ".,;!?"
+
+# 同一文檔中允許相同子標題（僅限不同父層級下）
+MD024:
+  siblings_only: true
+
+# 強調樣式相容性
+MD050: false
