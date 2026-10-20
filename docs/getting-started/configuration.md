@@ -86,7 +86,7 @@ windcold-kb/
 | :--- | :--- | :--- |
 | **`git-committers`** | Plugin | 透過 GitHub API 自動在每篇筆記下方顯示貢獻者頭像與個人檔案連結。 |
 | **`git-revision-date-localized`** | Plugin | 自動抓取 Git 提交時間，顯示在地化修訂時間（如「3 小時前」）。 |
-| **`git-latest-changes`** | Plugin | 在任意頁面輸入 `{{ latest_changes }}` 即可產生全站最新提交異動表格。 |
+| **`git-latest-changes`** | Plugin | 在任意頁面輸入 `\{\{ latest_changes \}\}` 即可產生全站最新提交異動表格。 |
 | **`minify`** | Plugin | 建置時自動壓縮 HTML、CSS 與 JavaScript 靜態檔案，提升載入速度。 |
 | **`ai-summary`** | Plugin | 支援文章 meta 加入 `include: [ai-summary]` 自動由 AI 產出文章前言摘要。 |
 | **`llmstxt`** | Plugin | 產出標準 `/llms.txt` 與 `/llms-full.txt`，供 AI Agent 快速檢索知識庫。 |
