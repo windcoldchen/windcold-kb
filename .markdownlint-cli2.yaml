@@ -1,0 +1,8 @@
+# markdownlint-cli2 configuration
+config:
+  extends: .markdownlint.yaml
+
+ignores:
+  - ".venv/**"
+  - "site/**"
+  - "node_modules/**"

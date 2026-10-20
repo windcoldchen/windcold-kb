@@ -1,6 +1,6 @@
 # 知識庫設定與 GitHub Pages 部署指南
 
-本頁面詳細介紹如何維護此知識庫，包含 GitHub Actions CI/CD 自動化設定與分支保護規範。
+本頁面詳細介紹如何維護此知識庫，包含 GitHub Actions CI/CD 自動化設定、Markdown Lint 檢查與分支保護規範。
 
 ---
 
@@ -12,7 +12,7 @@
 windcold-kb/
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml            # PR 語法與建置嚴格檢查 (CI)
+│       ├── ci.yml            # PR 語法與 Markdown Lint 檢查 (CI)
 │       └── deploy.yml        # main 分支 Pages 自動發布 (CD)
 ├── docs/                     # 存放所有 Markdown 筆記的主目錄
 │   ├── index.md              # 知識庫首頁
@@ -24,7 +24,10 @@ windcold-kb/
 │   │   └── workflow.md       # 日常工作流
 │   └── about.md              # 關於頁面
 ├── .gitignore
+├── .markdownlint.yaml        # Markdownlint 規則設定檔
+├── .markdownlint-cli2.yaml   # Markdownlint-cli2 執行與忽略路徑設定
 ├── mkdocs.yml                # MkDocs 核心設定檔
+├── package.json              # Lint 指令設定
 ├── README.md
 └── requirements.txt          # Python 依賴清單
 ```
@@ -57,12 +60,14 @@ windcold-kb/
 
 ## 3. 分支保護機制 (Branch Ruleset)
 
-為了避免手誤直接推送未經檢驗的代碼到主分支，本專案在 `main` 啟用了 GitHub Ruleset：
+為了確保主分支上的筆記內容品質，本專案在 `main` 啟用了 GitHub Ruleset：
 
 1. **禁止直接 Push 到 `main`**：所有變更必須透過開立分支與發起 Pull Request (PR)。
-2. **強制要求狀態檢查 (Required Status Check)**：
-   - 建立 PR 後，GitHub 會自動觸發 `CI - Syntax & Build Check`。
-   - 該檢查成功通過（綠燈 :white_check_mark:）後，GitHub 才會開放點擊 **Merge pull request**。
+2. **強制要求狀態檢查 (Required Status Checks)**：
+   - 建立 PR 後，GitHub 會自動並行觸發：
+     - `Markdown Lint Check`（格式與語法規範）
+     - `MkDocs Build Check`（建置與內部連結有效性）
+   - 兩項檢查成功通過（綠燈 :white_check_mark:）後，GitHub 才會開放點擊 **Merge pull request**。
 3. **禁止刪除或強制覆蓋 `main`** (`deletion` 與 `non-fast-forward` 保護)。
 
 ---
@@ -71,12 +76,12 @@ windcold-kb/
 
 專案採用職責分離的雙工作流程設計：
 
-### A. CI 語法檢查：`.github/workflows/ci.yml`
+### A. CI 語法與樣式檢查：`.github/workflows/ci.yml`
 
-當有任何 Pull Request 指向 `main` 時自動觸發：
+當有任何 Pull Request 指向 `main` 時自動並行觸發兩個檢查任務：
 
 ```yaml
-name: CI - Syntax & Build Check
+name: CI - Syntax & Lint Check
 
 on:
   pull_request:
@@ -88,8 +93,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  syntax-check:
-    name: Syntax & Build Check
+  markdown-lint:
+    name: Markdown Lint Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 執行 Markdown Lint 語法檢查
+        uses: DavidAnson/markdownlint-cli2-action@v19
+        with:
+          globs: "**/*.md"
+
+  build-check:
+    name: MkDocs Build Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -98,7 +113,7 @@ jobs:
           python-version: "3.11"
           cache: "pip"
       - run: pip install -r requirements.txt
-      - name: 檢查 Markdown 語法與站點建置 (嚴格模式)
+      - name: 檢查 MkDocs 語法與站點建置 (嚴格模式)
         run: mkdocs build --strict
 ```
 
@@ -151,6 +166,6 @@ jobs:
 | 指令 | 說明 |
 | :--- | :--- |
 | `mkdocs serve` | 啟動本地開發伺服器（預設網址 `http://127.0.0.1:8000`），修改文件即刻更新 |
-| `mkdocs build` | 建置純靜態網站至 `./site` 目錄 |
+| `npx markdownlint-cli2 "**/*.md"` | 執行 Markdown Lint 格式檢查 |
+| `npx markdownlint-cli2 --fix "**/*.md"` | 自動修復 Markdown 格式與空格問題 |
 | `mkdocs build --strict` | 嚴格模式建置（若有內部連結斷裂或警告將直接拋錯，推薦開 PR 前自我檢查） |
-| `mkdocs --help` | 查看所有支援指令 |
