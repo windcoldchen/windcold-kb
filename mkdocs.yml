@@ -1,0 +1,104 @@
+site_name: Windcold 知識庫
+site_description: 基於 Material for MkDocs 與 GitHub Pages 打造的個人技術與知識管理庫
+site_author: windcoldchen
+site_url: https://windcoldchen.github.io/windcold-kb/
+
+repo_name: windcoldchen/windcold-kb
+repo_url: https://github.com/windcoldchen/windcold-kb
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: zh-Hant
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tooltips
+  palette:
+    # 淺色模式
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: 切換至深色模式
+
+    # 深色模式
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: 切換至淺色模式
+
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.arithmatex:
+      generic: true
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/windcoldchen
+
+nav:
+  - 首頁: index.md
+  - 快速上手:
+      - 知識庫設定與部署: getting-started/configuration.md
+      - Markdown 語法示範: getting-started/syntax-cheatsheet.md
+  - 知識筆記:
+      - 範例筆記: notes/example.md
+      - 開發工作流: notes/workflow.md
+  - 關於: about.md
