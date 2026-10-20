@@ -1,0 +1,30 @@
+name: CI - Syntax & Build Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  syntax-check:
+    name: Syntax & Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: 檢出儲存庫代碼 (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 設定 Python 環境
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 安裝相依套件
+        run: pip install -r requirements.txt
+
+      - name: 檢查 Markdown 語法與站點建置 (嚴格模式)
+        run: mkdocs build --strict
