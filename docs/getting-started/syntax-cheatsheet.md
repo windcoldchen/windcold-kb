@@ -2,6 +2,10 @@
 alias:
   - syntax
   - cheatsheet
+tags:
+  - Markdown
+  - 語法元件
+  - 外掛示範
 ---
 
 # Markdown 語法與元件示範
@@ -141,6 +145,18 @@ sequenceDiagram
 
 - 前往 [[config|知識庫設定與部署指南]]
 - 亦支援標準相對檔案路徑：[日常筆記工作流](workflow.md)
+
+### B. 文章標籤 (Tags)
+
+在文章 front-matter 中加入 `tags:` 屬性，標籤會自動渲染於標題上方，並彙整於 [標籤索引頁](../tags.md)：
+
+```yaml
+---
+tags:
+  - Markdown
+  - 語法元件
+---
+```
 
 ### C. AI 摘要外掛 (ai-summary)
 
