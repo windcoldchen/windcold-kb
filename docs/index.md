@@ -34,6 +34,14 @@
 
     [:octicons-arrow-right-24: 探索筆記](notes/example.md)
 
+-   :material-history:{ .lg .middle } __最新異動__
+
+    ---
+
+    瀏覽全站文件的 Git 最新提交修訂歷程與變更紀錄。
+
+    [:octicons-arrow-right-24: 查看異動紀錄](changelog.md)
+
 -   :material-information-outline:{ .lg .middle } __關於知識庫__
 
     ---
@@ -43,6 +51,14 @@
     [:octicons-arrow-right-24: 了解更多](about.md)
 
 </div>
+
+---
+
+## :material-history: 最近文件異動
+
+以下為知識庫近期修訂之文件（由 `git-latest-changes` 自動彙整）：
+
+{{ latest_changes }}
 
 ---
 
