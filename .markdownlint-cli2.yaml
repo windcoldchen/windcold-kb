@@ -6,3 +6,4 @@ ignores:
   - ".venv/**"
   - "site/**"
   - "node_modules/**"
+  - ".cache/**"

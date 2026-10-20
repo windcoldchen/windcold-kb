@@ -1,3 +1,9 @@
+---
+alias:
+  - syntax
+  - cheatsheet
+---
+
 # Markdown 語法與元件示範
 
 Material for MkDocs 提供了豐富的排版元件與擴充功能。撰寫筆記時可隨時參考本頁面提供的語法範例。
@@ -116,11 +122,43 @@ sequenceDiagram
 
 ---
 
-## 5. 待辦事項與標記 (Task Lists & Marks)
+## 5. 待辦事項清單 (Checklist)
 
 - [x] 安裝 Material for MkDocs
 - [x] 設定自動化 GitHub Actions 流程
+- [x] 安裝 11 項實用 MkDocs 外掛
 - [ ] 撰寫第一篇核心架構筆記
-- [ ] 連結自訂網域名稱 (Custom Domain)
 
 你可以使用 ==高亮標記==、~~刪除線~~，或是 ++ctrl+k++ 鍵盤樣式。
+
+---
+
+## 6. 自動化外掛示範
+
+### A. 文章別名引用 (alias) 與內部連結
+
+在文章 front-matter 定義別名後，可以在任何頁面使用雙中括弧快速引用：
+
+- 前往 [[config|知識庫設定與部署指南]]
+- 亦支援標準相對檔案路徑：[日常筆記工作流](workflow.md)
+
+### C. AI 摘要外掛 (ai-summary)
+
+在需要 AI 自動摘要的文章頂部加入：
+
+```yaml
+---
+include:
+  - ai-summary
+---
+```
+
+建置時將自動呼叫 LLM 產生精簡前言摘要。
+
+### D. LLMs.txt 規範支援 (llmstxt)
+
+網站建置時會自動於根目錄產出標準規範的 `/llms.txt` 與 `/llms-full.txt`，供 AI 智慧助理檢索知識庫全站內容。
+
+### E. Git Committers 與版本修訂日期
+
+頁面底端將自動載入本頁面的貢獻者頭像清單與最後修訂時間（如「3 小時前」、「2 天前」）。
