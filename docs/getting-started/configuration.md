@@ -1,6 +1,6 @@
 # 知識庫設定與 GitHub Pages 部署指南
 
-本頁面詳細介紹如何維護此知識庫，以及設定 GitHub Pages 自動化發布的完整步驟。
+本頁面詳細介紹如何維護此知識庫，包含 GitHub Actions CI/CD 自動化設定與分支保護規範。
 
 ---
 
@@ -12,15 +12,16 @@
 windcold-kb/
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml        # GitHub Actions 自動部署工作流
+│       ├── ci.yml            # PR 語法與建置嚴格檢查 (CI)
+│       └── deploy.yml        # main 分支 Pages 自動發布 (CD)
 ├── docs/                     # 存放所有 Markdown 筆記的主目錄
 │   ├── index.md              # 知識庫首頁
 │   ├── getting-started/      # 入門指引
-│   │   ├── configuration.md
-│   │   └── syntax-cheatsheet.md
+│   │   ├── configuration.md  # 知識庫設定與部署說明
+│   │   └── syntax-cheatsheet.md # 語法元件示範
 │   ├── notes/                # 分類筆記
-│   │   ├── example.md
-│   │   └── workflow.md
+│   │   ├── example.md        # 筆記範本
+│   │   └── workflow.md       # 日常工作流
 │   └── about.md              # 關於頁面
 ├── .gitignore
 ├── mkdocs.yml                # MkDocs 核心設定檔
@@ -49,14 +50,61 @@ windcold-kb/
 
 1. 在專案的 **Settings** > **Actions** > **General**。
 2. 滾動至 **Workflow permissions**：
-    - 選擇 **Read and write permissions**（或確認允許 GitHub Actions 提交與部署）。
+    - 選擇 **Read and write permissions**。
 3. 點擊 **Save**。
 
 ---
 
-## 3. GitHub Actions 工作流程解析
+## 3. 分支保護機制 (Branch Ruleset)
 
-我們在 `.github/workflows/deploy.yml` 定義了自動化建置流程：
+為了避免手誤直接推送未經檢驗的代碼到主分支，本專案在 `main` 啟用了 GitHub Ruleset：
+
+1. **禁止直接 Push 到 `main`**：所有變更必須透過開立分支與發起 Pull Request (PR)。
+2. **強制要求狀態檢查 (Required Status Check)**：
+   - 建立 PR 後，GitHub 會自動觸發 `CI - Syntax & Build Check`。
+   - 該檢查成功通過（綠燈 :white_check_mark:）後，GitHub 才會開放點擊 **Merge pull request**。
+3. **禁止刪除或強制覆蓋 `main`** (`deletion` 與 `non-fast-forward` 保護)。
+
+---
+
+## 4. GitHub Actions 工作流程解析
+
+專案採用職責分離的雙工作流程設計：
+
+### A. CI 語法檢查：`.github/workflows/ci.yml`
+
+當有任何 Pull Request 指向 `main` 時自動觸發：
+
+```yaml
+name: CI - Syntax & Build Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  syntax-check:
+    name: Syntax & Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - run: pip install -r requirements.txt
+      - name: 檢查 Markdown 語法與站點建置 (嚴格模式)
+        run: mkdocs build --strict
+```
+
+### B. CD 部署上線：`.github/workflows/deploy.yml`
+
+僅在變更真正合併至 `main` 分支時觸發部署：
 
 ```yaml
 name: Deploy MkDocs to GitHub Pages
@@ -64,7 +112,7 @@ name: Deploy MkDocs to GitHub Pages
 on:
   push:
     branches:
-      - main  # 當推送到 main 分支時觸發
+      - main  # 當 PR 合併至 main 時觸發
 
 permissions:
   contents: read
@@ -82,48 +130,27 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: 檢出儲存庫
-        uses: actions/checkout@v4
-
-      - name: 設定 Python 環境
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
-
-      - name: 安裝依賴套件
-        run: pip install -r requirements.txt
-
-      - name: 建置靜態網站
-        run: mkdocs build
-
-      - name: 上傳 Pages 產出物
-        uses: actions/upload-pages-artifact@v3
+      - run: pip install -r requirements.txt
+      - run: mkdocs build
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: ./site
-
-      - name: 部署至 GitHub Pages
-        id: deployment
+      - id: deployment
         uses: actions/deploy-pages@v4
 ```
 
-每次你修改文章並執行：
-
-```bash
-git add .
-git commit -m "docs: 新增筆記"
-git push origin main
-```
-
-GitHub Actions 就會自動觸發並在約 1~2 分鐘內完成建置與上線！
-
 ---
 
-## 4. 本地常用指令
+## 5. 本地常用指令
 
 | 指令 | 說明 |
 | :--- | :--- |
 | `mkdocs serve` | 啟動本地開發伺服器（預設網址 `http://127.0.0.1:8000`），修改文件即刻更新 |
 | `mkdocs build` | 建置純靜態網站至 `./site` 目錄 |
-| `mkdocs build --strict` | 嚴格模式建置（若有內部連結斷裂或警告將直接拋錯，推薦部署前自我檢查） |
+| `mkdocs build --strict` | 嚴格模式建置（若有內部連結斷裂或警告將直接拋錯，推薦開 PR 前自我檢查） |
 | `mkdocs --help` | 查看所有支援指令 |
