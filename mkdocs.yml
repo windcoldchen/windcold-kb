@@ -101,6 +101,7 @@ plugins:
       locale: zh
       fallback_to_build_date: true
       enable_git_follow: false
+      strict: false
   - git-latest-changes:
       limit_to_docs_dir: true
   - minify:
