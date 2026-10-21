@@ -156,6 +156,15 @@ https://windcoldchen.github.io/windcold-kb/search/search_index.json
    - **Command**：`npx -y @serverless-dna/mkdocs-mcp https://windcoldchen.github.io/windcold-kb/ "Windcold 技術知識庫"`
 3. 點選儲存，狀態顯示綠燈即可在 Composer 或 Chat 中直接查詢線上文件。
 
+### D. 本專案 NPM 快速啟動
+
+專案 `package.json` 已內建 `@serverless-dna/mkdocs-mcp` 與便利腳本，在本專案根目錄下可直接透過 npm 啟動：
+
+```bash
+# 透過 npm script 直接啟動遠端線上知識庫 MCP 服務 (stdio)
+npm run mcp:online
+```
+
 ---
 
 ## 5. 實際使用範例 (Prompt Examples)
