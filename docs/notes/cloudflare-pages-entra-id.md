@@ -187,10 +187,14 @@ jobs:
 ```
 
 > [!NOTE]
+> **金鑰設定與自建 GitLab 替代方案**
+>
 > 需在 GitHub 儲存庫 Secrets 中配置：
 >
 > - `CLOUDFLARE_API_TOKEN`：具備 `Cloudflare Pages: Edit` 權限之 API Token。
 > - `CLOUDFLARE_ACCOUNT_ID`：Cloudflare 儀表板中的帳戶 ID。
+>
+> *(註：若專案代碼託管於企業自建 GitLab，可透過 GitLab Runner 執行 Wrangler CLI 推送部署，詳見 [Self-Hosted GitLab CI/CD 部署方案](gitlab-ci-cd-deployment.md)。)*
 
 ---
 

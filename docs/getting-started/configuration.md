@@ -203,11 +203,12 @@ jobs:
 ```
 
 > [!TIP]
-> **尋找其他雲端平台託管方案？**
+> **尋找其他雲端平台託管或自架 GitLab CI/CD 方案？**
 > 若您有企業內部存取限制、身分驗證或希望整合全球邊緣網路與預覽環境，請參考：
 >
 > - [Azure Static Web Apps 部署方案](../notes/azure-static-web-apps.md)：微軟雲端原生 Anycast CDN、內建 Entra ID 整合與 PR 預覽環境。
 > - [Cloudflare Pages + Access (Entra ID) 方案](../notes/cloudflare-pages-entra-id.md)：結合 Cloudflare 邊緣零信任 (ZTNA)、O365 SSO 與免費 50 席零信任名額。
+> - [Self-Hosted GitLab CI/CD 部署方案](../notes/gitlab-ci-cd-deployment.md)：企業自架 GitLab 環境透過 GitLab Runner 主動推送發布至 Azure SWA 與 Cloudflare Pages。
 
 ---
 
