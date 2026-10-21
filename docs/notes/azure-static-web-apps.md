@@ -286,7 +286,10 @@ mkdocs build --strict && cp staticwebapp.config.json site/
 | **伺服器端 API 擴展** | 不支援（僅純靜態） | 可隨時無縫整合 Azure Functions (Python / Node / C#) |
 
 > [!TIP]
-> 若您希望結合 Cloudflare 的全球邊緣安全防護與無限制頻寬，並使用相同的 Microsoft 365 Entra ID 進行單一登入，亦可參考 [Cloudflare Pages + Access (Entra ID) 部署方案](cloudflare-pages-entra-id.md)。
+> **相關替代方案**
+>
+> - 若您希望結合 Cloudflare 的全球邊緣安全防護與無限制頻寬，並使用相同的 Microsoft 365 Entra ID 進行單一登入，請參考 [Cloudflare Pages + Access (Entra ID) 部署方案](cloudflare-pages-entra-id.md)。
+> - 若專案代碼託管於企業自建 GitLab，請參考 [Self-Hosted GitLab CI/CD 部署方案](gitlab-ci-cd-deployment.md)。
 
 ---
 
