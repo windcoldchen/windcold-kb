@@ -4,9 +4,11 @@
   "description": "Windcold 知識庫",
   "scripts": {
     "lint:md": "markdownlint-cli2 \"**/*.md\"",
-    "lint:md:fix": "markdownlint-cli2 --fix \"**/*.md\""
+    "lint:md:fix": "markdownlint-cli2 --fix \"**/*.md\"",
+    "mcp:online": "mkdocs-mcp https://windcoldchen.github.io/windcold-kb/ \"Windcold 知識庫\""
   },
   "devDependencies": {
+    "@serverless-dna/mkdocs-mcp": "^1.1.0",
     "markdownlint-cli2": "^0.17.2"
   }
 }
