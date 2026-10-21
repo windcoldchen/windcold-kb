@@ -202,6 +202,10 @@ jobs:
         uses: actions/deploy-pages@v5
 ```
 
+> [!TIP]
+> **尋找其他雲端平台託管方案？**
+> 若您有企業內部存取限制（如 Microsoft Entra ID 身分驗證）、PR 預覽站點需求或希望整合微軟雲端邊緣網路，請參考 [Azure Static Web Apps 部署方案](../notes/azure-static-web-apps.md)。
+
 ---
 
 ## 6. 本地常用指令
