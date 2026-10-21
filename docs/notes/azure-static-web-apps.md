@@ -285,6 +285,9 @@ mkdocs build --strict && cp staticwebapp.config.json site/
 | **路由與標頭自訂** | 功能較基本，無法客製化 HTTP Headers | 完整支援 `staticwebapp.config.json` 設定安全標頭與重導向 |
 | **伺服器端 API 擴展** | 不支援（僅純靜態） | 可隨時無縫整合 Azure Functions (Python / Node / C#) |
 
+> [!TIP]
+> 若您希望結合 Cloudflare 的全球邊緣安全防護與無限制頻寬，並使用相同的 Microsoft 365 Entra ID 進行單一登入，亦可參考 [Cloudflare Pages + Access (Entra ID) 部署方案](cloudflare-pages-entra-id.md)。
+
 ---
 
 ## 7. 常見問題與除錯要點 (Troubleshooting)

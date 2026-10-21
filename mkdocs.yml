@@ -141,6 +141,7 @@ nav:
       - 範例筆記: notes/example.md
       - 開發工作流: notes/workflow.md
       - Azure Static Web Apps 方案: notes/azure-static-web-apps.md
+      - Cloudflare Pages + Access 方案: notes/cloudflare-pages-entra-id.md
   - 最新異動: changelog.md
   - 標籤索引: tags.md
   - 關於: about.md
