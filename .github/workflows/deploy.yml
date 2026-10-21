@@ -31,7 +31,7 @@ jobs:
       - name: 設定 Python 環境
         uses: actions/setup-python@v7
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: "pip"
 
       - name: 安裝相依套件

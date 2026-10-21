@@ -146,7 +146,7 @@ jobs:
           ref: ${{ github.head_ref || github.ref }}
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: "pip"
       - run: pip install -r requirements.txt
       - name: 檢查 MkDocs 語法與站點建置 (嚴格模式)
@@ -189,7 +189,7 @@ jobs:
           fetch-depth: 0 # 完整抓取 Git 歷史紀錄以支援 git-* 外掛
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: "pip"
       - run: pip install -r requirements.txt
       - run: mkdocs build
