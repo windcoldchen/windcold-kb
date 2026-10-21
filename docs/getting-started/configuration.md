@@ -204,7 +204,10 @@ jobs:
 
 > [!TIP]
 > **尋找其他雲端平台託管方案？**
-> 若您有企業內部存取限制（如 Microsoft Entra ID 身分驗證）、PR 預覽站點需求或希望整合微軟雲端邊緣網路，請參考 [Azure Static Web Apps 部署方案](../notes/azure-static-web-apps.md)。
+> 若您有企業內部存取限制、身分驗證或希望整合全球邊緣網路與預覽環境，請參考：
+>
+> - [Azure Static Web Apps 部署方案](../notes/azure-static-web-apps.md)：微軟雲端原生 Anycast CDN、內建 Entra ID 整合與 PR 預覽環境。
+> - [Cloudflare Pages + Access (Entra ID) 方案](../notes/cloudflare-pages-entra-id.md)：結合 Cloudflare 邊緣零信任 (ZTNA)、O365 SSO 與免費 50 席零信任名額。
 
 ---
 
