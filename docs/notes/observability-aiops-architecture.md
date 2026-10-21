@@ -52,7 +52,7 @@ tags:
 ```mermaid
 flowchart TD
     subgraph DataSources["1. 數據採集與業務指標層"]
-        K8s[Kubernetes 集群 / Exporters]
+        K8s["Kubernetes 集群 / Exporters"]
         InHouseApp["自研系統業務服務 (In-House Services)"]
         InHouseJob["自研定時批次 / 工作流 (Workers)"]
     end
@@ -101,9 +101,9 @@ flowchart TD
     Claude <-->|查詢近期指標異常| VM
 
     Keep -->|P1/P2 高優先級事故| GoAlert
-    Keep -->|P1 致命事故 (Priority=2)| Pushover
-    Pushover -->|iOS Critical Alerts / 穿透勿擾| SRE["值班 SRE / 工程師 (手機/Apple Watch)"]
-    GoAlert -->|電話語音 / SMS 催辦| SRE
+    Keep -->|"P1 致命事故 (Priority=2)"| Pushover
+    Pushover -->|"iOS Critical Alerts / 穿透勿擾"| SRE["值班 SRE / 工程師 (手機/Apple Watch)"]
+    GoAlert -->|"電話語音 / SMS 催辦"| SRE
 
     Keep -->|發布 AI 豐富化卡片| Teams
     Teams -.->|一鍵確認 / 認領| GoAlert
