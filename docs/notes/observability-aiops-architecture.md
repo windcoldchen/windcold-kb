@@ -9,6 +9,7 @@ tags:
   - AIOps
   - Keep
   - GoAlert
+  - Pushover
   - Claude
   - MkDocs
   - Teams
@@ -16,7 +17,7 @@ tags:
 
 # 新世代智慧可觀測性與 AIOps 告警自癒架構方案 :material-monitor-dashboard:
 
-> 結合 **Grafana**、**VictoriaMetrics**、**Alertmanager** 打造高效時序監控基石，透過 **Keep** 與 **GoAlert** 實現智慧告警收斂與 On-Call 輪值，並深度串接 **Claude AI**、**MkDocs 知識庫 (MCP)**、**自研系統** 與 **Microsoft Teams**，建構自動化故障診斷與 ChatOps 一鍵自癒閉環。
+> 結合 **Grafana**、**VictoriaMetrics**、**Alertmanager** 打造高效時序監控基石，透過 **Keep**、**GoAlert** 與 **Pushover** 實現智慧告警收斂、On-Call 輪值與穿透靜音強提醒，並深度串接 **Claude AI**、**MkDocs 知識庫 (MCP)**、**自研系統** 與 **Microsoft Teams**，建構自動化故障診斷與 ChatOps 一鍵自癒閉環。
 
 ---
 
@@ -39,7 +40,7 @@ tags:
 - **極致高效的監控基石**：採用 **VictoriaMetrics** 替代傳統 Prometheus TSDB，提供高出數倍的寫入吞吐量、低至 1/5 的儲存空間與 1/7 的記憶體消耗，完整相容 PromQL (MetricsQL)。
 - **智慧告警編排與 AIOps 中樞**：透過 **Keep (KeepHQ)** 作為跨平台告警匯流排，統一 Alertmanager、Grafana 與自研系統的告警資料模型，執行關聯分析與去重。
 - **Claude AI 賦能與 MkDocs 知識庫連動**：在告警觸發第一時間，**Claude** 透過 **Model Context Protocol (MCP)** 自動調閱 **MkDocs 技術知識庫** 內的專屬 Runbook，並調用 VictoriaMetrics 指標趨勢，即時生成根因診斷與修復建議。
-- **嚴謹的 On-Call 輪替**：整合 **GoAlert**，針對 P1/P2 高優先級事故執行階梯升級通知（Teams ➔ 手機 App Push ➔ SMS ➔ 語音電話）。
+- **分級 On-Call 輪值與緊急強提醒 (GoAlert + Pushover)**：整合 **GoAlert** 處理排班與電信語音/SMS 階梯升級；同時結合 **Pushover** 的 **iOS Critical Alerts** 機制，當發生 P1 致命故障時強制穿透值班人員手機的「實體靜音開關與勿擾模式」，並以每 30 秒奪命連環催確保半夜絕不漏接。
 - **Teams 互動卡片與自研系統閉環**：透過 **Microsoft Teams Adaptive Cards**，讓值班人員直接在群組內檢閱 AI 診斷摘要、查閱 SOP 連結，並直接點擊自癒按鈕回呼自研系統執行修復動作。
 
 ---
@@ -76,6 +77,7 @@ flowchart TD
 
     subgraph EscalationAndChatOps["5. 排班升級與協同自癒"]
         GoAlert["GoAlert (On-Call 排班 / 階梯升級)"]
+        Pushover["Pushover (手機 App 緊急強提醒 / 穿透靜音)"]
         Teams["Microsoft Teams (互動式 Adaptive Cards)"]
         InHouseAPI["自研系統維運 API (一鍵自癒 / 降級開關)"]
     end
@@ -99,7 +101,9 @@ flowchart TD
     Claude <-->|查詢近期指標異常| VM
 
     Keep -->|P1/P2 高優先級事故| GoAlert
-    GoAlert -->|電話 / SMS / App Push| SRE["值班 SRE / 工程師"]
+    Keep -->|P1 致命事故 (Priority=2)| Pushover
+    Pushover -->|iOS Critical Alerts / 穿透勿擾| SRE["值班 SRE / 工程師 (手機/Apple Watch)"]
+    GoAlert -->|電話語音 / SMS 催辦| SRE
 
     Keep -->|發布 AI 豐富化卡片| Teams
     Teams -.->|一鍵確認 / 認領| GoAlert
@@ -116,7 +120,7 @@ flowchart TD
 | **3. 初步收斂** | Alertmanager | 依據標籤（如 `cluster`, `env`, `service`）進行抑制、分組與靜音，透過 Webhook 轉交 Keep。 | $T + 20\text{s}$ |
 | **4. AIOps 編排** | KeepHQ | 接收結構化告警，依據工作流引擎分派：呼叫 Claude 進行分析、準備通知頻道。 | $T + 22\text{s}$ |
 | **5. AI 根因研判** | Claude + MkDocs MCP | Claude 透過 MCP 查閱 MkDocs 對應的故障排查手冊，比對 VM 近期指標，產出 150 字 RCA 與建議。 | $T + 30\text{s}$ |
-| **6. 協同與呼叫** | Teams + GoAlert | Teams 頻道即時呈現豐富化卡片；若為重大事件，GoAlert 發起 On-Call 語音電話與簡訊。 | $T + 35\text{s}$ |
+| **6. 協同與呼叫** | Teams + Pushover + GoAlert | Teams 呈現豐富化卡片；Pushover 針對值班人員發動穿透靜音的強制強提醒 (每 30 秒催促)；若逾時無人認領，GoAlert 發動電話語音叫醒。 | $T + 35\text{s}$ |
 | **7. 一鍵自癒** | Teams ➔ 自研系統 | 工程師在 Teams 卡片點擊「執行隔離/重啟」，WebHook 呼叫自研維運 API，系統恢復正常。 | $T + 60\text{s}$ |
 
 ---
@@ -149,6 +153,14 @@ flowchart TD
 
 - **傳統痛點**：告警內容通常只有 `summary` 與 `description`，缺乏處置智慧，新進同仁常不知如何下手。
 - **本方案創新**：MkDocs 透過 `@serverless-dna/mkdocs-mcp` 將企業內部積累的所有技術 SOP、Runbook、架構文檔封裝為 MCP 工具。Claude 接收到告警後，直接調用 `search_documentation` 獲取「該故障的官方標準處置流程」，並結合自研系統標籤與即時指標，組合成客製化診斷報告。
+
+### E. Pushover 專屬行動推播與緊急強提醒
+
+- **補足開源工具無手機 App 缺口**：GoAlert 原生未提供官方 iOS/Android App，結合 Pushover 即可獲得成熟的行動端與 Apple Watch 即時推播能力。
+- **iOS Critical Alerts 穿透靜音開關**：針對 P1 致命故障發送 `priority=2`，可強制突破 iPhone 實體靜音鍵與系統「勿擾/睡眠模式」，發出高分貝警報。
+- **定時奪命連環催**：支援 `retry=30`（每 30 秒重複鳴響），直到工程師在手機上點擊確認 (Acknowledge) 才會停止。
+- **極致性價比**：相較於商業 SaaS 每人每月數十美元的費用，Pushover 個人端為 **$4.99 USD 一次性買斷制**（終生零月費），每月享 10,000 則免費額度。
+- **專屬文件參考**：完整功能介紹、API 呼叫與費用方案請參閱 [Pushover 即時推播服務指南](pushover-guide.md)。
 
 ---
 
@@ -252,6 +264,27 @@ workflow:
           body:
             summary: "[{{ alert.labels.environment }}] {{ alert.name }} - {{ alert.labels.service }}"
             details: "Claude 診斷摘要：{{ steps.claude-rca-analysis.output.summary }}\nRunbook: {{ alert.annotations.runbook_url }}"
+
+    # 步驟三：P1 致命告警發送 Pushover Priority 2 穿透靜音警報 (奪命連環催)
+    - name: notify-pushover-emergency
+      if: "alert.labels.severity == 'critical'"
+      provider:
+        type: http
+        config:
+          url: "https://api.pushover.net/1/messages.json"
+          method: POST
+          headers:
+            Content-Type: "application/x-www-form-urlencoded"
+          body:
+            token: "ENV_PUSHOVER_APP_TOKEN"
+            user: "ENV_PUSHOVER_ONCALL_GROUP"
+            title: "🔥 [CRITICAL] {{ alert.name }} - {{ alert.labels.service }}"
+            message: "Claude 診斷摘要：{{ steps.claude-rca-analysis.output.summary }}\n請立即檢視 SOP 處置！"
+            priority: "2"
+            retry: "30"
+            expire: "3600"
+            url: "{{ alert.annotations.runbook_url }}"
+            url_title: "📖 開啟 MkDocs Runbook"
 
   # 動作：發送 Teams Adaptive Card
   actions:
@@ -540,6 +573,7 @@ async def execute_remediation(payload: RemediationPayload):
 │ AI 智慧大腦       │ Anthropic Claude 3.5 (根因假設分析與處置指引)       │
 │ 團隊智慧技術中樞   │ MkDocs 知識庫 (透過 MCP 實現 SOP 即時自動檢索)     │
 │ 階梯式 On-Call 輪值│ GoAlert (開源無許可證費用、支援電話/簡訊/語音升級)   │
+│ 個人行動推播強提醒 │ Pushover (支援 iOS Critical Alerts 穿透勿擾模式)    │
 │ ChatOps 協同平台   │ Microsoft Teams (互動式 Adaptive Cards)           │
 │ 維運自癒執行端     │ 自研系統 (Prometheus Metrics + 安全 Webhook API)  │
 └────────────────────┴───────────────────────────────────────────────────┘
