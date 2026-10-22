@@ -34,16 +34,16 @@ tags:
 ```mermaid
 flowchart TD
     subgraph ModeA["情境一：本地開發者即時模式 (mkdocs-mcp)"]
-        LocalDocs[本地 docs/*.md 原始碼] --> PythonMCP[Python mkdocs-mcp CLI]
-        PythonMCP -->|stdio 通訊| LocalAI[本地 AI 助理<br/>(Cursor / Claude / Antigravity)]
-        LocalAI --> ResultA[可查詢未 commit 的本機最新草稿]
+        LocalDocs["本地 docs/*.md 原始碼"] --> PythonMCP["Python mkdocs-mcp CLI"]
+        PythonMCP -->|"stdio 通訊"| LocalAI["本地 AI 助理<br/>(Cursor / Claude / Antigravity)"]
+        LocalAI --> ResultA["可查詢未 commit 的本機最新草稿"]
     end
 
     subgraph ModeB["情境二：遠端線上 GitHub Pages 直連模式 (@serverless-dna/mkdocs-mcp)"]
-        RemoteSite[GitHub Pages 網站<br/>https://windcoldchen.github.io/windcold-kb/] --> SearchIndex[search/search_index.json]
-        SearchIndex --> NodeMCP[Node npx @serverless-dna/mkdocs-mcp]
-        NodeMCP -->|HTTP 抓取索引| RemoteAI[任何人的 AI 助理<br/>(零依賴、免 clone)]
-        RemoteAI --> ResultB[免安裝 Python，直接查詢線上最新發布文檔]
+        RemoteSite["GitHub Pages 網站<br/>https://windcoldchen.github.io/windcold-kb/"] --> SearchIndex["search/search_index.json"]
+        SearchIndex --> NodeMCP["Node npx @serverless-dna/mkdocs-mcp"]
+        NodeMCP -->|"HTTP 抓取索引"| RemoteAI["任何人的 AI 助理<br/>(零依賴、免 clone)"]
+        RemoteAI --> ResultB["免安裝 Python，直接查詢線上最新發布文檔"]
     end
 ```
 

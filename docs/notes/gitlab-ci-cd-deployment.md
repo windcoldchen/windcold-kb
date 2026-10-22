@@ -30,21 +30,21 @@ tags:
 ```mermaid
 flowchart TD
     subgraph Internal["企業內網 / 私有雲 (Self-Hosted)"]
-        Dev[工程師提交代碼 / 開立 MR] --> GitLab[(Self-Hosted GitLab)]
-        GitLab --> Runner[GitLab Runner (Docker Executor)]
-        Runner --> Lint[Markdown Lint 檢驗]
-        Lint --> Build[MkDocs Build --strict 產出 site/]
+        Dev["工程師提交代碼 / 開立 MR"] --> GitLab[("Self-Hosted GitLab")]
+        GitLab --> Runner["GitLab Runner (Docker Executor)"]
+        Runner --> Lint["Markdown Lint 檢驗"]
+        Lint --> Build["MkDocs Build --strict 產出 site/"]
     end
 
     subgraph Outbound["主動對外發布 (Outbound CLI Deploy)"]
-        Build --> DeployChoice{選擇部署目標平台}
-        DeployChoice -->|目標 A| SWA_CLI[Azure SWA CLI<br/>@azure/static-web-apps-cli]
-        DeployChoice -->|目標 B| CF_CLI[Cloudflare Wrangler CLI<br/>wrangler pages deploy]
+        Build --> DeployChoice{"選擇部署目標平台"}
+        DeployChoice -->|"目標 A"| SWA_CLI["Azure SWA CLI<br/>@azure/static-web-apps-cli"]
+        DeployChoice -->|"目標 B"| CF_CLI["Cloudflare Wrangler CLI<br/>wrangler pages deploy"]
     end
 
     subgraph Cloud["全域邊緣平台 (Public Cloud Edge)"]
-        SWA_CLI --> AzureEdge[Azure SWA 全球 CDN<br/>含 Entra ID 整合與 PR 預覽]
-        CF_CLI --> CFEdge[Cloudflare Pages + Access<br/>含 O365 零信任身分驗證]
+        SWA_CLI --> AzureEdge["Azure SWA 全球 CDN<br/>含 Entra ID 整合與 PR 預覽"]
+        CF_CLI --> CFEdge["Cloudflare Pages + Access<br/>含 O365 零信任身分驗證"]
     end
 ```
 
