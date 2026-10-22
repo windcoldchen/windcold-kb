@@ -147,6 +147,7 @@ nav:
       - mkdocs-mcp 使用指南: notes/mkdocs-mcp-guide.md
       - AIOps 智慧可觀測性方案: notes/observability-aiops-architecture.md
       - Pushover 行動推播指南: notes/pushover-guide.md
+      - VictoriaMetrics 全家桶架構解析: notes/victoriametrics-ecosystem-guide.md
   - 最新異動: changelog.md
   - 標籤索引: tags.md
   - 關於: about.md
