@@ -10,4 +10,4 @@ mkdocs-autorefs>=1.4.0
 mkdocs-autolinks-plugin>=0.7.0
 mkdocs-alias-plugin>=0.12.0
 markdown-checklist>=0.4.4
-mkdocs-mcp>=0.1.3
+

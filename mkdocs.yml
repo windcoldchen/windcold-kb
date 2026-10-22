@@ -126,9 +126,7 @@ plugins:
   - autorefs
   - autolinks
   - alias
-  - mcp:
-      naming_style: src_file
-      prefer_markdown: true
+
 
 extra:
   social:
