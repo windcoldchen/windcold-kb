@@ -6,6 +6,7 @@ tags:
   - VictoriaMetrics
   - OTel
   - VictoriaLogs
+  - VictoriaTraces
   - Observability
   - Metrics
   - Logs
@@ -16,7 +17,7 @@ tags:
 
 # OpenTelemetry vs VictoriaMetrics 可觀測性全家餐深度評比（Metrics、Logs、Traces） :material-view-dashboard-variant-outline:
 
-> 在雲原生可觀測性（Observability）的世界中，**Metrics（指標）**、**Logs（日誌）** 與 **Traces（分散式鏈路追蹤）** 被公認為維運監控的三大黃金支柱。目前業界有兩大備受矚目的「全家餐」解決方案：一個是背靠 CNCF 基金會、致力於成為全球遙測數據**採集與語意標準**的 **OpenTelemetry (OTel)**；另一個則是以極致效能、超高壓縮比與極低資源消耗聞名，提供完整**儲存與分析引擎**的 **VictoriaMetrics 全家桶**。本文將從核心本質、三維能力、資源消耗到實戰架構進行全面剖析，協助企業打造最優技術棧。
+> 在雲原生可觀測性（Observability）的世界中，**Metrics（指標）**、**Logs（日誌）** 與 **Traces（分散式鏈路追蹤）** 被公認為維運監控的三大黃金支柱。目前業界有兩大備受矚目的「全家餐」解決方案：一個是背靠 CNCF 基金會、致力於成為全球遙測數據**採集與語意標準**的 **OpenTelemetry (OTel)**；另一個則是以極致效能、超高壓縮比與極低資源消耗聞名，提供完整**儲存與分析引擎**的 **VictoriaMetrics 全家桶**（包含 VictoriaMetrics、VictoriaLogs 與 VictoriaTraces）。本文將從核心本質、三維能力、資源消耗到實戰架構進行全面剖析，協助企業打造最優技術棧。
 
 ---
 
@@ -36,22 +37,22 @@ flowchart TD
 
     subgraph VMPositioning["VictoriaMetrics 全家桶核心定位"]
         direction TB
-        VM_Role["定位：高效能觀測性『時間序列與日誌儲存/查詢運算核心』<br/>(High-Performance TSDB & Log Storage Engine)"]
+        VM_Role["定位：高效能觀測性『指標、日誌與鏈路儲存/查詢運算核心』<br/>(High-Performance TSDB, Log & Trace Storage Engine)"]
         VM_Adv1["優勢：自研 MergeTree 引擎，極致 ZSTD 壓縮"]
         VM_Adv2["優勢：超低 CPU/記憶體開銷，百億級時序耐受度"]
-        VM_Adv3["優勢：完整的後端組件 (vmagent, vmalert, vmauth, VictoriaLogs)"]
+        VM_Adv3["優勢：完整的後端組件 (vmagent, vmalert, vmauth, VictoriaLogs, VictoriaTraces)"]
     end
 ```
 
 ### A. OpenTelemetry：標準化遙測管線 (The Standard Pipeline)
 
 - **核心價值**：OTel 本身**不是**資料庫或儲存系統，而是一套由 CNCF 主導的**全球開放標準**。它定義了應用程式如何暴露數據（API & SDK）、數據格式（OTLP 協議）、以及在傳輸過程中如何接收、過濾、聚合與路由（OTel Collector）。
-- **後端依賴**：OTel 產出的資料必須匯入專屬儲存後端（例如 Prometheus、VictoriaMetrics、Jaeger、Tempo、Loki、ClickHouse 或 Elasticsearch）。
+- **後端依賴**：OTel 產出的資料必須匯入專屬儲存後端（例如 Prometheus、VictoriaMetrics、VictoriaTraces、Jaeger、Tempo、Loki、ClickHouse 或 Elasticsearch）。
 
 ### B. VictoriaMetrics：極致效能儲存引擎 (The Engine & Storage Suite)
 
-- **核心價值**：VictoriaMetrics 是一套專門解決「巨量可觀測性數據存不下、查不動、太耗錢」的**高性能儲存與運算引擎**。它具備成熟的採集代理（vmagent）、告警引擎（vmalert）、安全網關（vmauth）、時間序列資料庫（vmstorage/vmsingle）、以及專用日誌儲存（VictoriaLogs）。
-- **協定支援**：完全相容 Prometheus/PromQL 生態，並全面支援接收 OTLP（Metrics、Logs、Traces）協定。
+- **核心價值**：VictoriaMetrics 是一套專門解決「巨量可觀測性數據存不下、查不動、太耗錢」的**高性能儲存與運算引擎**。它具備成熟的採集代理（vmagent）、告警引擎（vmalert）、安全網關（vmauth）、時間序列資料庫（vmstorage/vmsingle）、專用日誌儲存（VictoriaLogs）、以及專屬分散式鏈路追蹤資料庫（VictoriaTraces）。
+- **協定支援**：完全相容 Prometheus/PromQL 生態，並全面支援以 OTLP 格式直接接收 Metrics、Logs 與 Traces 數據。
 
 ---
 
@@ -71,13 +72,14 @@ flowchart TD
     subgraph VMStack["VictoriaMetrics 全家桶架構"]
         AppVM["基礎設施 / K8s / 業務服務"] -->|"Scrape / Remote Write"| VMAgent["vmagent<br/>(極速指標採集 / 串流過濾)"]
         NodeLog["節點日誌 / 容器日誌"] -->|"FluentBit / Vector / vmagent"| VMLogsEngine
-        AppOTelTrace["應用程式 Traces"] -->|"OTLP Push"| VMLogsEngine
+        AppOTelTrace["應用程式 Traces"] -->|"OTLP Push"| VMTracesEngine
         
         VMAgent -->|"ZSTD 壓縮寫入"| VMCluster["VictoriaMetrics Cluster<br/>(vminsert / vmstorage / vmselect)"]
         
-        subgraph VMStorageZone["VictoriaMetrics 統一大水庫"]
+        subgraph VMStorageZone["VictoriaMetrics 統一大水庫 (三位一體)"]
             VMCluster
-            VMLogsEngine[("VictoriaLogs<br/>(結構化日誌與 OTLP Traces 引擎)")]
+            VMLogsEngine[("VictoriaLogs<br/>(結構化日誌 TSDB)")]
+            VMTracesEngine[("VictoriaTraces<br/>(專屬鏈路追蹤 TSDB)")]
         end
         
         VMCluster -->|"MetricsQL 告警評估"| VMAlert["vmalert"]
@@ -114,12 +116,12 @@ flowchart TD
 
 ### C. Traces（分散式鏈路追蹤）
 
-| 評比維度 | OpenTelemetry 生態 (OTel Traces) | VictoriaMetrics 生態 (Trace 處理方案) | 深度技術分析與選型建議 |
+| 評比維度 | OpenTelemetry 生態 (OTel Traces) | VictoriaMetrics 生態 (VictoriaTraces) | 深度技術分析與選型建議 |
 | :--- | :--- | :--- | :--- |
 | **應用程式埋點** | **業界絕對統治者**（Java/Python/Go/.NET 自動 Agent 與手動 SDK） | 無專屬 Trace 埋點 SDK，**全面建議採用 OpenTelemetry SDK 埋點** | **OTel 統治代碼層**，W3C TraceContext 上下文跨進程透傳為全球標準。 |
-| **採樣機制** | 支援 Head-based（SDK 端）與 **Tail-based Sampling**（Collector 網關端） | 無專門鏈路採樣器，依賴前端採集代理 | **OTel 尾端採樣能力強大**（可保留所有 5xx 錯誤與慢查詢鏈路）。 |
-| **儲存實現** | 通常外發至 **Grafana Tempo**、**Jaeger** 或 **ClickHouse** | **VictoriaLogs OTLP Ingestion**（將 Span 作為結構化事件壓縮儲存）或對接 Tempo | 若追求極致鏈路檢索與拓撲圖，**搭配 Tempo/Jaeger 體驗更佳**；若追求統一大儲存，**VictoriaLogs 可儲存 Spans**。 |
-| **鏈路視覺化** | 透過 Jaeger UI、Grafana Tempo 檢視水瀑圖 (Flame Graph) 與依賴拓撲 | 透過 Grafana Trace Viewer 插件或 VictoriaLogs Web UI 查詢 TraceID | **OTel + Grafana 生態在鏈路水瀑圖與拓撲圖上更成熟豐富**。 |
+| **採樣機制** | 支援 Head-based（SDK 端）與 **Tail-based Sampling**（Collector 網關端） | 無專門鏈路採樣器，依賴前端採集代理（如 OTel Collector）實施採樣 | **OTel 尾端採樣能力強大**（可保留所有 5xx 錯誤與慢查詢鏈路）。 |
+| **儲存實現** | 通常外發至 **Grafana Tempo**、**Jaeger** 或 **ClickHouse** | **VictoriaTraces** 專屬分散式鏈路追蹤儲存引擎（亦可選擇儲存至 VictoriaLogs） | **VictoriaTraces 無需物件儲存 (S3)**，直接高效落盤 SSD，資源消耗比 Tempo 更低且無外部依賴。 |
+| **鏈路視覺化** | 透過 Jaeger UI、Grafana Tempo 檢視水瀑圖 (Flame Graph) 與依賴拓撲 | 內建 **VMUI** (`/select/vmui`) 即開即用，且 **100% 相容 Jaeger Query API** | VictoriaTraces 可無縫掛載為 Grafana 的 Jaeger 數據源，享有同等的水瀑圖視覺化體驗。 |
 
 ---
 
@@ -128,7 +130,7 @@ flowchart TD
 | 評比指標 | OpenTelemetry 全家餐 (OTel Stack) | VictoriaMetrics 全家桶 (VM Stack) | 架構團隊綜合評語 |
 | :--- | :--- | :--- | :--- |
 | **核心本質** | 遙測數據傳輸與語意規範標準 | 高吞吐、超低成本的儲存與查詢大腦 | 一個管「收與轉」，一個管「存與查」。 |
-| **開箱即用度** | 中等（需自行拼裝各類後端資料庫與視覺化介面） | **極高**（指標 + 日誌 + 告警 + 網關一應俱全，單一二進位即可起跑） | VM 部署簡單，維運難度遠低於拼裝各類大數據庫。 |
+| **開箱即用度** | 中等（需自行拼裝各類後端資料庫與視覺化介面） | **極高**（指標 + 日誌 + 鏈路 + 告警 + 網關一應俱全，單一二進位即可起跑） | VM 部署簡單，維運難度遠低於拼裝各類大數據庫。 |
 | **硬體資源開銷** | 較高（Collector 解析多層模型 + 多套後端儲存開銷） | **極低**（Go 靜態編譯，超低記憶體與高壓縮演算法） | **VictoriaMetrics 具備壓倒性的硬體性價比**。 |
 | **廠商鎖定風險** | **零風險**（CNCF 頂級中立標準，所有主流廠商皆相容） | **極低**（完全相容 Prometheus 生態、OTLP 與開源標準） | 兩者皆為開源楷模，無被商業軟體綁架疑慮。 |
 | **維運複雜度 (TCO)** | 涉及 Collector 集群管理、多儲存組件生命週期維護 | 極簡（無外部依賴、無 JVM/ZooKeeper、備份僅需一個二進位檔） | **VictoriaMetrics 總維運成本 (TCO) 顯著低於複雜開源堆疊**。 |
@@ -139,23 +141,23 @@ flowchart TD
 
 在實務架構設計中，我們無需陷入「二選一」的思維陷阱。以下提供三種不同維運規模的標準落地藍圖：
 
-### 藍圖一：極簡高效型架構（純 VictoriaMetrics 技術棧）
+### 藍圖一：極簡高效型架構（純 VictoriaMetrics 全家桶技術棧）
 
-適合以指標與日誌為核心、伺服器資源受限、追求極致維運效率的中小型團隊或私有雲環境：
+適合以指標、日誌與鏈路為核心、伺服器資源受限、追求極致維運效率的中小型團隊或私有雲環境：
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
 │                   純 VictoriaMetrics 極簡高效可觀測性架構                │
 ├────────────────────┬───────────────────────────────────────────────────┤
-│ 指標採集 (Metrics) │ vmagent (Kubernetes DaemonSet，超低記憶體)         │
-│ 指標儲存與運算     │ VictoriaMetrics Cluster (高效 TSDB，MetricsQL)    │
-│ 日誌收集與儲存     │ Vector / FluentBit ➔ VictoriaLogs (無索引高壓縮)  │
+│ 指標採集與儲存     │ vmagent ➔ VictoriaMetrics Cluster (MetricsQL)    │
+│ 日誌收集與儲存     │ Vector / FluentBit ➔ VictoriaLogs (LogsQL)        │
+│ 鏈路追蹤 (Traces)  │ OTel SDK / Agent ➔ VictoriaTraces (OTLP 接收)      │
 │ 告警與路由中樞     │ vmalert ➔ Alertmanager ➔ Teams / GoAlert          │
-│ 視覺化前端         │ Grafana (配置 VictoriaMetrics 與 VictoriaLogs 數據源) │
+│ 視覺化分析前端     │ VMUI (內建) 或 Grafana (統一儀表板與 Jaeger 數據源) │
 └────────────────────┴───────────────────────────────────────────────────┘
 ```
 
-- **核心優勢**：架構極簡，只需維護 VM 全家桶組件，整套系統記憶體消耗可能只需原本 Prometheus + ELK 堆疊的 $1/5$。
+- **核心優勢**：架構極簡，只需維護 VM 全家桶組件（VictoriaMetrics + VictoriaLogs + VictoriaTraces），整套系統記憶體消耗可能只需原本 Prometheus + ELK + Tempo 堆疊的 $1/5$。
 
 ---
 
@@ -179,14 +181,14 @@ flowchart TD
         OTelAgent --> OTelGW
     end
 
-    subgraph StoragePlane["3. VictoriaMetrics + 鏈路儲存大水庫"]
+    subgraph StoragePlane["3. VictoriaMetrics 三位一體儲存大水庫"]
         VMMetrics[("VictoriaMetrics Cluster<br/>(指標統一大水庫)")]
         VMLogs[("VictoriaLogs<br/>(結構化日誌儲存)")]
-        Tempo[("Grafana Tempo / VictoriaLogs<br/>(分散式鏈路追蹤)")]
+        VMTraces[("VictoriaTraces<br/>(專屬鏈路追蹤儲存)")]
         
         OTelGW -->|"OTLP / Remote Write"| VMMetrics
         OTelGW -->|"OTLP Logs / HTTP"| VMLogs
-        OTelGW -->|"OTLP gRPC (尾端採樣)"| Tempo
+        OTelGW -->|"OTLP gRPC (尾端採樣)"| VMTraces
     end
 
     subgraph VisualizationPlane["4. 協同與視覺化 (Grafana + AIOps)"]
@@ -195,12 +197,12 @@ flowchart TD
         
         VMMetrics --> Grafana
         VMLogs --> Grafana
-        Tempo --> Grafana
+        VMTraces -->|"Jaeger Query API"| Grafana
         VMMetrics --> Keep
     end
 ```
 
-#### 組態示範：OTel Collector 分流輸出至 VictoriaMetrics 與 VictoriaLogs
+#### 組態示範：OTel Collector 分流輸出至 VictoriaMetrics、VictoriaLogs 與 VictoriaTraces
 
 ```yaml
 # /etc/otelcol/config.yaml
@@ -229,9 +231,9 @@ exporters:
   otlphttp/victorialogs:
     endpoint: "http://victoria-logs:9428/insert/opentelemetry"
 
-  # 3. 鏈路追蹤輸出至 Grafana Tempo
-  otlp/tempo:
-    endpoint: "tempo:4317"
+  # 3. 鏈路追蹤輸出至 VictoriaTraces (OTLP gRPC 格式)
+  otlp/victoriatraces:
+    endpoint: "victoria-traces:10428"
     tls:
       insecure: true
 
@@ -248,7 +250,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [otlp/tempo]
+      exporters: [otlp/victoriatraces]
 ```
 
 ---
@@ -262,11 +264,11 @@ flowchart TD
     Start["評估企業可觀測性戰略"] --> Q1{"核心瓶頸在哪裡？"}
 
     Q1 -- "儲存昂貴 / 記憶體常爆 / 查不動" --> Q2{"當前已有成熟的採集工具嗎？"}
-    Q2 -- "有 (Prometheus / FluentBit)" --> PickVM["全面引入 VictoriaMetrics + VictoriaLogs<br/>(原位替代 Prometheus / ES，立即省 $70% 成本)"]
+    Q2 -- "有 (Prometheus / FluentBit)" --> PickVM["全面引入 VictoriaMetrics 全家桶<br/>(VM + VictoriaLogs + VictoriaTraces)"]
     Q2 -- "否 (全新微服務規劃)" --> PickHybrid
 
     Q1 -- "代碼未規範 / 多語言無法追蹤 / 廠商鎖定" --> Q3{"必須全面推行 Traces 鏈路追蹤嗎？"}
-    Q3 -- "是" --> PickHybrid["採用【業界終極架構】：<br/>前端代碼採用 OpenTelemetry SDK + Collector 採集<br/>後端儲存採用 VictoriaMetrics + VictoriaLogs + Tempo"]
+    Q3 -- "是" --> PickHybrid["採用【業界終極架構】：<br/>前端代碼採用 OpenTelemetry SDK + Collector 採集<br/>後端儲存採用 VictoriaMetrics + VictoriaLogs + VictoriaTraces"]
     Q3 -- "否 (僅需基礎設施指標與日誌)" --> PickVM
 ```
 
@@ -275,5 +277,5 @@ flowchart TD
 ## 7. 總結
 
 1. **不可替代的採集標準（OpenTelemetry）**：在代碼層與傳輸層，OTel 是無可爭議的贏家。它的跨語言 SDK、自動注入、上下文透傳與 OTLP 協議，能確保企業代碼永遠具備開放性，徹底告別特定監控商綁定。
-2. **不可忽視的儲存王者（VictoriaMetrics）**：在數據儲存與查詢運算層，VictoriaMetrics 則是性價比的極致代表。無論是時序資料庫還是 VictoriaLogs，其令人驚嘆的高壓縮比、超低資源佔用與簡單架構，解決了海量遙測數據帶來的伺服器成本焦慮。
-3. **終極解法**：**「採集用 OTel，儲存用 VictoriaMetrics」**。讓 OpenTelemetry 負責標準化的數據收集與治理，讓 VictoriaMetrics 承接巨量數據的持久儲存與秒級查詢，兩者互補共生，方能打造出最具擴展性與性價比的現代 AIOps 觀測平台。
+2. **不可忽視的儲存王者（VictoriaMetrics）**：在數據儲存與查詢運算層，VictoriaMetrics 則是性價比的極致代表。無論是時序資料庫、VictoriaLogs 還是專屬鏈路追蹤 **VictoriaTraces**，其令人驚嘆的高壓縮比、超低資源佔用與簡單架構，徹底解決了海量遙測數據帶來的伺服器成本焦慮。
+3. **終極解法**：**「採集用 OTel，儲存用 VictoriaMetrics」**。讓 OpenTelemetry 負責標準化的數據收集與治理，讓 VictoriaMetrics 三位一體（VictoriaMetrics + VictoriaLogs + VictoriaTraces）承接巨量數據的持久儲存與秒級查詢，兩者互補共生，方能打造出最具擴展性與性價比的現代 AIOps 觀測平台。
