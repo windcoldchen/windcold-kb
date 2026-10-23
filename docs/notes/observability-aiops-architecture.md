@@ -139,9 +139,12 @@ flowchart TD
 
 ### B. Keep (KeepHQ) AIOps 引擎
 
-- **多來源統一資料格式**：可同時接收 Prometheus Alertmanager、Datadog、Sentry、AWS CloudWatch 以及自研系統的自定義 Webhook，消除監控孤島。
-- **告警降噪與關聯**：透過拓撲與時間滑動窗口，自動將數十個次生告警合併為單一事件群組 (Incident)。
-- **宣告式 Workflow**：使用 YAML 格式定義工作流，原生支援整合 Claude / OpenAI、Slack、Teams、Jira、PagerDuty、GoAlert。
+KeepHQ 在此架構中扮演**告警中樞 (Alert Aggregation Hub)** 與 **AIOps 編排大腦 (Workflow Orchestrator)** 的雙重關鍵角色：
+
+- **多來源統一資料模型 (Unified Alert Data Model)**：原生對接 Prometheus Alertmanager、VictoriaMetrics、Datadog、Sentry、AWS CloudWatch 及自研系統 Webhook。Keep 將異質告警原始 JSON 映射至統一的內部資料結構（標準欄位包含 `name`、`status`、`severity`、`source`、`labels`、`annotations`、`fingerprint` 等），終結監控孤島。
+- **動態關聯與告警降噪 (Topological Correlation & Deduplication)**：採用滑動時間窗口（Time-Window Bucketing）與拓撲依賴標籤，在告警湧入時自動聚合次生事件，將數十個零散告警收斂為單一「事故群組 (Incident)」，避免 On-Call 人員遭受告警風暴洗禮。
+- **宣告式自動化工作流 (Declarative Workflow as Code)**：使用簡潔明瞭的 YAML 語法定義工作流觸發條件（Triggers）、執行步驟（Steps）與外派動作（Actions）。原生內建超過 50 種 Providers，包括 LLM (Anthropic、OpenAI、Ollama)、通訊平台 (Teams、Slack)、協同工具 (Jira、GitHub) 與 On-Call 系統 (GoAlert、PagerDuty)。
+- **AI 根因研判與原位告警豐富化 (In-Place Alert Enrichment)**：傳統告警僅能傳遞「哪裡壞了 (What)」，缺乏「為何壞 (Why)」與「如何修 (How)」。Keep 的核心威力在於能調度跨維度資訊（時序指標、知識庫 Runbook、程式變更歷史）餵給大語言模型進行深度根因推演 (RCA)，並將 AI 診斷結果直接原位寫回 Keep Alert/Incident 資料庫的 `enrichments` 屬性中，提供 Web 控制台即時檢視與下游通知管道無縫引用。
 
 ### C. GoAlert 開源 On-Call 管理
 
@@ -220,38 +223,186 @@ receivers:
           bearer_token: 'KEEP_INGEST_API_KEY_SECRET'
 ```
 
-### C. Keep AIOps 工作流編排 (Keep Workflow)
+### C. Keep AIOps 工作流架構與基本概念
 
-在 Keep 中定義自動化工作流，負責協調 Claude、MkDocs 檢索、Teams 訊息派發與 GoAlert 升級：
+KeepHQ 採用宣告式工作流（Workflow as Code），所有自動化處理邏輯皆以 YAML 檔案維護，具備以下四大核心要素：
+
+1. **Triggers（觸發條件）**：定義工作流何時啟動。支援依據告警屬性（如 `severity: critical|high`、`service: payment-gateway`）、來源（`source: prometheus`）或定時排程（Cron）進行過濾。
+2. **Steps（執行步驟）**：按順序執行上下文蒐集、數據關聯與推理。步驟可呼叫內建 Provider（如 HTTP、Python 腳本、SQL 查詢、VictoriaMetrics API、LLM 大模型）。前一步驟的輸出（`steps.<step-name>.output`）可直接被後續步驟作為 Jinja2 變數引用。
+3. **Enrichments（原位告警豐富化）**：此為 AIOps 最核心能力。工作流能將 AI 推論產生的根因報告、信心度或排查連結，動態寫入該告警實體的 `enrichments` 屬性中，讓 Web UI 與後續動作隨取隨用。
+4. **Actions（派案與通知動作）**：根據告警等級分流派發至通訊頻道（Teams、Slack）、階梯式呼叫平台（GoAlert）、緊急強提醒（Pushover）或自研自癒 Webhook。
+
+---
+
+### D. KeepHQ AI 根因研判 (AI RCA) 核心機制與運作管線
+
+傳統告警體系的最大痛點是「知其然不知其所以然」：值班人員收到「API 5xx 錯誤率 > 5%」的告警後，仍需耗費大量時間登入 Grafana 查指標、登入伺服器查日誌、翻閱 Wiki 找 SOP。
+
+本方案在 KeepHQ 中建構的 **AI 根因研判 (AI Root Cause Analysis, AI RCA)** 機制，在告警到達 Keep 的前 10 秒內，自動完成「異常指標追溯 + 知識庫 Runbook 檢索 + 大模型思維鏈推演 + 原位告警豐富化」的無人值守診斷閉環。
+
+#### 1. AI 根因研判全鏈路運作架構
+
+```mermaid
+flowchart TD
+    Alert["Alertmanager / 自研業務告警<br/>(Webhook Ingest)"] --> KeepHub["KeepHQ AIOps 引擎<br/>(動態聚類與排程分派)"]
+
+    subgraph StepContext["步驟一：跨源上下文動態採集 (Multi-Source Context)"]
+        KeepHub --> CtxVM["1. VictoriaMetrics PromQL 查詢<br/>(拉取過去 15 分鐘關鍵指標曲線)"]
+        KeepHub --> CtxKB["2. MkDocs MCP / 知識庫檢索<br/>(精確檢索對應服務 Runbook / SOP)"]
+        KeepHub --> CtxMeta["3. 提取 Kubernetes / 業務標籤<br/>(Service、Namespace、Pod、錯誤率)"]
+    end
+
+    CtxVM --> PromptBuilder["Prompt 動態渲染器<br/>(Jinja2 整合告警、時序數據與 SOP)"]
+    CtxKB --> PromptBuilder
+    CtxMeta --> PromptBuilder
+
+    subgraph StepAI["步驟二：AI 根因研判與推理 (Reasoning Plane)"]
+        PromptBuilder --> AIModel["Anthropic Claude 3.5 Sonnet /<br/>私有化 Ollama (DeepSeek / Qwen)"]
+        AIModel --> CoT["SRE 思維鏈 (Chain of Thought)<br/>比對指標異常、錯誤模式與知識庫"]
+        CoT --> OutputParser["結構化 JSON 輸出驗證<br/>(根因假設 + 信心度 + 處置代碼)"]
+    end
+
+    subgraph StepEnrich["步驟三：原位告警豐富化 (Alert Enrichment)"]
+        OutputParser --> KeepDB["Keep 告警資料庫<br/>寫入 alert.enrichments.ai_rca"]
+    end
+
+    subgraph StepDispatch["步驟四：多管道精準協同與派案 (Dispatch & Action)"]
+        KeepDB --> Teams["Microsoft Teams<br/>(互動式 Adaptive Card 卡片)"]
+        KeepDB --> GoAlert["GoAlert 階梯 On-Call<br/>(附帶 AI 診斷之語音電話 / SMS)"]
+        KeepDB --> Pushover["Pushover 緊急推播<br/>(iOS 穿透靜音強提醒)"]
+        KeepDB --> AutoHeal["自研自癒 Controller<br/>(依據 AI 建議提供一鍵修復 Webhook)"]
+    end
+```
+
+---
+
+### E. Keep 原生 AI Provider 與本地私有化 LLM 配置實踐
+
+KeepHQ 支援原生調用雲端大模型或內部私有化模型，維運團隊可依資安等級自由切換：
+
+#### 1. 原生公有雲 Provider (Anthropic Claude / OpenAI)
+
+在 Keep 後台 Settings ➔ Providers 或透過環境變數注入 API Key：
+
+```bash
+# 啟動 Keep 時注入金鑰
+export ANTHROPIC_API_KEY="sk-ant-api03-xxxx"
+export OPENAI_API_KEY="sk-proj-xxxx"
+```
+
+#### 2. 地端私有化與離線模型配置 (Ollama / vLLM / DeepSeek-R1 / Qwen 2.5)
+
+針對金融業、醫療或機敏資料嚴禁出境之環境，可在內部架設高效能推論引擎（如 Ollama 或 vLLM），並透過相容 OpenAI API 介面接入 Keep：
+
+```yaml
+# /etc/keep/providers/ollama_provider.yml
+providers:
+  - id: internal-ollama-llm
+    type: openai
+    config:
+      api_key: "internal-dummy-key"
+      api_url: "http://ollama-server.internal.windcold.com:11434/v1"
+      model: "deepseek-r1:14b" # 或 qwen2.5-coder:14b
+```
+
+---
+
+### F. 生產級多階段 AI RCA Workflow 工作流實作 (Keep YAML)
+
+以下為完整的生產級工作流設定檔，實現「自動拉取 VictoriaMetrics 遙測數據 ➔ 檢索 MkDocs SOP ➔ 呼叫 Claude 3.5 診斷 ➔ 原位 Enrich 告警 ➔ 派發 Teams / Pushover / GoAlert」：
 
 ```yaml
 # /etc/keep/workflows/aiops_incident_enrichment.yml
 workflow:
   id: inhouse-incident-aiops-workflow
-  description: "接收 Alertmanager 告警，調用 Claude + MkDocs MCP 分析，發布 Teams 卡片與 GoAlert"
+  description: "端到端 AIOps 告警富化：整合 VictoriaMetrics 時序指標、MkDocs Runbook 與 Claude AI 根因研判"
   triggers:
     - type: alert
       filters:
         - key: severity
           value: "critical|high"
+
   steps:
-    # 步驟一：呼叫內部 Claude MCP Agent 進行研判
-    - name: claude-rca-analysis
+    # 步驟 1：向 VictoriaMetrics 查詢近 15 分鐘的指標趨勢 (異常時序遙測)
+    - name: fetch-metric-telemetry
       provider:
         type: http
         config:
-          url: "http://ai-agent-service.internal.windcold.com/v1/analyze"
-          method: POST
-          headers:
-            Content-Type: "application/json"
-          body:
-            alert_name: "{{ alert.name }}"
-            service: "{{ alert.labels.service }}"
-            description: "{{ alert.annotations.description }}"
-            runbook_url: "{{ alert.annotations.runbook_url }}"
-            metrics_query: "{{ alert.generatorURL }}"
+          url: "http://victoria-metrics.monitoring.svc.cluster.local:8428/api/v1/query_range"
+          method: GET
+          params:
+            query: 'sum(rate(http_requests_total{service="{{ alert.labels.service }}"}[2m])) by (status)'
+            step: "30s"
+            start: "-15m"
+            end: "now"
 
-    # 步驟二：重大告警同步派案至 GoAlert 進行 On-Call 呼叫
+    # 步驟 2：向 MkDocs 知識庫或 MCP 服務檢索標準處置手冊 (Runbook)
+    - name: fetch-mkdocs-runbook
+      provider:
+        type: http
+        config:
+          url: "http://ai-agent-service.internal.windcold.com/v1/runbook/search"
+          method: GET
+          params:
+            keyword: "{{ alert.labels.service }}"
+
+    # 步驟 3：調用 Claude 3.5 Sonnet 大模型執行 SRE 根因推演 (AI RCA)
+    - name: ai-rca-reasoning
+      provider:
+        type: anthropic
+        config:
+          model: "claude-3-5-sonnet-20241022"
+          temperature: 0.2
+          max_tokens: 800
+          system_prompt: |
+            你是一位擁有 10 年資歷的頂尖 Site Reliability Engineer (SRE) 專家。
+            請根據提供的「告警原始資訊」、「VictoriaMetrics 即時指標遙測數據」以及「MkDocs 官方知識庫 Runbook」，
+            以客觀嚴謹、具備因果邏輯鏈的方式產出根因分析。
+            嚴格規定：
+            1. 僅基於給定的數據進行合理推論，嚴禁憑空捏造不存在的錯誤。若指標不足，請如實標明「指標不足，需額外排查日誌」。
+            2. 回應必須為嚴格的 JSON 格式，不得包含任何額外解說文字或 Markdown 標籤。
+          prompt: |
+            【告警基本資訊】：
+            - 告警名稱：{{ alert.name }}
+            - 影響服務：{{ alert.labels.service }}
+            - 嚴重層級：{{ alert.labels.severity }}
+            - 環境：{{ alert.labels.environment }}
+            - 描述：{{ alert.annotations.description }}
+
+            【VictoriaMetrics 近 15 分鐘指標遙測】：
+            {{ steps.fetch-metric-telemetry.output.body | string | truncate(1500) }}
+
+            【MkDocs 官方 Runbook 指南】：
+            {{ steps.fetch-mkdocs-runbook.output.body | string | truncate(1500) }}
+
+            請輸出符合以下 JSON Schema 的診斷結果：
+            {
+              "root_cause_hypothesis": "核心根因假設（80字內，說明可能直接導因）",
+              "confidence_score": 85,
+              "evidence": "從指標或描述中獲得的關鍵佐證",
+              "recommended_actions": [
+                "緊急處置動作一（條列具體指令或步驟）",
+                "預防與根治措施二"
+              ],
+              "auto_heal_action": "建議自動自癒動作代碼 (例如 scale_db_pool, restart_pod, clear_cache, none)",
+              "safe_to_auto_heal": true
+            }
+
+    # 步驟 4：Keep 原位告警豐富化 (Alert Enrichment)
+    # 將 AI RCA 診斷與修復建議寫入 Keep 告警主體，讓 Web UI 與所有後續動作共享
+    - name: enrich-keep-alert
+      provider:
+        type: keep
+        config:
+          action: "enrich-alert"
+          alert_fingerprint: "{{ alert.fingerprint }}"
+          enrichments:
+            ai_rca_hypothesis: "{{ (steps.ai-rca-reasoning.output.content | from_json).root_cause_hypothesis }}"
+            ai_confidence: "{{ (steps.ai-rca-reasoning.output.content | from_json).confidence_score }}%"
+            ai_recommended_action: "{{ (steps.ai-rca-reasoning.output.content | from_json).recommended_actions | join('；') }}"
+            ai_auto_heal_suggested: "{{ (steps.ai-rca-reasoning.output.content | from_json).auto_heal_action }}"
+
+    # 步驟 5：派案至 GoAlert (當為 critical 致命告警時觸發語音/SMS 升級)
     - name: trigger-goalert
       if: "alert.labels.severity == 'critical'"
       provider:
@@ -263,9 +414,9 @@ workflow:
             Content-Type: "application/json"
           body:
             summary: "[{{ alert.labels.environment }}] {{ alert.name }} - {{ alert.labels.service }}"
-            details: "Claude 診斷摘要：{{ steps.claude-rca-analysis.output.summary }}\nRunbook: {{ alert.annotations.runbook_url }}"
+            details: "【Claude AI RCA】{{ (steps.ai-rca-reasoning.output.content | from_json).root_cause_hypothesis }}\n信心度: {{ (steps.ai-rca-reasoning.output.content | from_json).confidence_score }}%\n建議處置: {{ (steps.ai-rca-reasoning.output.content | from_json).recommended_actions | join('\n') }}\nRunbook: {{ alert.annotations.runbook_url }}"
 
-    # 步驟三：P1 致命告警發送 Pushover Priority 2 穿透靜音警報 (奪命連環催)
+    # 步驟 6：Pushover 發送 Priority 2 穿透靜音強提醒 (每 30 秒奪命連環催)
     - name: notify-pushover-emergency
       if: "alert.labels.severity == 'critical'"
       provider:
@@ -279,14 +430,14 @@ workflow:
             token: "ENV_PUSHOVER_APP_TOKEN"
             user: "ENV_PUSHOVER_ONCALL_GROUP"
             title: "🔥 [CRITICAL] {{ alert.name }} - {{ alert.labels.service }}"
-            message: "Claude 診斷摘要：{{ steps.claude-rca-analysis.output.summary }}\n請立即檢視 SOP 處置！"
+            message: "AI 根因研判：{{ (steps.ai-rca-reasoning.output.content | from_json).root_cause_hypothesis }}\n信心度：{{ (steps.ai-rca-reasoning.output.content | from_json).confidence_score }}%\n請儘速處置！"
             priority: "2"
             retry: "30"
             expire: "3600"
             url: "{{ alert.annotations.runbook_url }}"
             url_title: "📖 開啟 MkDocs Runbook"
 
-  # 動作：發送 Teams Adaptive Card
+  # 派送動作：向 Teams 告警群組推送豐富化後的互動卡片
   actions:
     - name: notify-teams-channel
       provider:
@@ -296,77 +447,187 @@ workflow:
           template: "teams-adaptive-card-template.json"
           params:
             alert: "{{ alert }}"
-            claude_analysis: "{{ steps.claude-rca-analysis.output }}"
+            rca: "{{ steps.ai-rca-reasoning.output.content | from_json }}"
 ```
 
-### D. Claude + MkDocs MCP 智慧診斷引擎後台實作
+---
 
-以下為微服務（如 FastMCP 或 Python FastAPI 服務）調用 Claude 與 MkDocs MCP 的核心邏輯：
+### G. SRE 工業級 Prompt Engineering 規範與結構化輸出設計
+
+為了防止大模型產生幻覺（Hallucination）或給予模稜兩可的建議，Keep 中的 AI 提示詞應落實以下四大標準規範：
+
+1. **角色賦予與情境約束 (Role & Grounding)**：
+   - 明確設定 SRE 角色與事故影響範圍。
+   - 限制大模型**僅能依據上下文提供的時間序列數值（如 HTTP 5xx 激增比例、MySQL 連線池飽和度、記憶體使用百分比）與 Runbook 文件**進行推理。
+2. **思維鏈推理要求 (Chain of Thought, CoT)**：
+   - 指導模型依序比對：`指標異常現象` $\rightarrow$ `拓撲依賴關聯` $\rightarrow$ `知識庫已知案例` $\rightarrow$ `得出根因假設`。
+3. **嚴格 JSON Schema 約束**：
+   - 規範輸出特定 JSON 欄位（`root_cause_hypothesis`、`confidence_score`、`recommended_actions`、`auto_heal_action`、`safe_to_auto_heal`）。
+   - 確保下游 Jinja2 模板（如 Teams 卡片、GoAlert）可透過 `from_json` 進行欄位存取，避免字串解析失敗。
+4. **置信度評分機制 (Confidence Scoring)**：
+   - 當上下文同時包含指標時序與精確 Runbook SOP 時，置信度應 $\ge 80\%$；若缺少特定指標數據或 Runbook 僅為泛型說明，置信度應自動降至 $< 60\%$，並標示需要人工進一步比對日誌。
+
+---
+
+### H. 進階代理架構：Claude + MkDocs MCP 智慧診斷微服務後台
+
+若企業希望在 Keep 之外維護更強大的獨立診斷代理（例如支援 FastMCP、多輪問答或調用自研除錯工具），可將步驟委託給獨立的 Python AI Agent 微服務：
 
 ```python
 """
 Claude AI RCA 診斷微服務：
-整合 Anthropic Claude 3.5 Sonnet 與 MkDocs MCP Server，
-結合即時指標與知識庫 Runbook 產出高精確度診斷結果。
+整合 Anthropic Claude 3.5 Sonnet、VictoriaMetrics API 與 MkDocs MCP Server，
+結合即時指標與知識庫 Runbook 產出結構化高精確度診斷報告。
 """
 from anthropic import Anthropic
 import os
+import json
 import requests
 
 anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+VM_SELECT_URL = os.getenv("VM_URL", "http://victoria-metrics:8428/api/v1/query")
 
-def get_mkdocs_runbook_content(query_keyword: str) -> str:
-    """
-    透過 HTTP 查詢已發布的 MkDocs search_index.json 或本地 MCP Server，
-    精確抓取相應故障處置章節內容。
-    """
+def fetch_victoriametrics_metric(query_expr: str) -> dict:
+    """查詢 VictoriaMetrics 當前異常指標數值與趨勢"""
+    try:
+        resp = requests.get(VM_SELECT_URL, params={"query": query_expr}, timeout=3)
+        if resp.status_code == 200:
+            return resp.json().get("data", {}).get("result", [])
+    except Exception as err:
+        print(f"查詢 VictoriaMetrics 失敗: {err}")
+    return {}
+
+def get_mkdocs_runbook_content(service_name: str) -> str:
+    """透過 HTTP 查詢 MkDocs search_index.json 精確抓取相應故障處置章節內容"""
     search_url = "https://windcoldchen.github.io/windcold-kb/search/search_index.json"
     try:
         resp = requests.get(search_url, timeout=5)
         if resp.status_code == 200:
             docs = resp.json().get("docs", [])
             for doc in docs:
-                if query_keyword.lower() in doc.get("title", "").lower() or query_keyword.lower() in doc.get("text", "").lower():
+                title = doc.get("title", "").lower()
+                text = doc.get("text", "").lower()
+                if service_name.lower() in title or service_name.lower() in text:
                     return f"### 文件標題: {doc.get('title')}\n{doc.get('text')[:1200]}"
     except Exception as e:
         print(f"查詢 MkDocs 知識庫失敗: {e}")
-    return "無直接匹配的 Runbook，請參考基礎維運總則。"
+    return "無直接匹配的專屬 Runbook，請參考微服務通用排查手冊。"
 
-def analyze_incident(alert_name: str, service: str, description: str) -> dict:
+def analyze_incident_rca(alert_name: str, service: str, description: str, promql_query: str) -> dict:
+    """執行全鏈路根因研判推理"""
     # 1. 檢索知識庫 SOP
     sop_content = get_mkdocs_runbook_content(service)
 
-    # 2. 構建 Prompt 請 Claude 評估
+    # 2. 補充指標遙測數據
+    telemetry_data = fetch_victoriametrics_metric(promql_query) if promql_query else "無指定指標表達式"
+
+    # 3. 呼叫 Claude 3.5 Sonnet
     system_prompt = (
-        "你是一位擁有 10 年經驗的 Site Reliability Engineer (SRE) 專家。"
-        "請根據傳入的告警資訊、當前系統指標以及 MkDocs 知識庫 Runbook，"
-        "以客觀、精簡的繁體中文給出：\n"
-        "1. 故障可能成因 (Root Cause Hypothesis, 80字內)\n"
-        "2. 建議即時處置操作 (Actionable Recommendations, 2~3項條列)\n"
-        "3. 是否建議執行自研系統自動重啟/流量降級 (布林值)"
+        "你是一位擁有 10 年資歷的頂尖 Site Reliability Engineer (SRE) 專家。"
+        "請根據傳入的告警資訊、當前 VictoriaMetrics 即時指標以及 MkDocs 知識庫 Runbook，"
+        "以客觀、精準的繁體中文完成根因診斷，並以嚴格的 JSON 格式輸出。"
     )
 
     user_prompt = f"""
     【告警名稱】：{alert_name}
     【影響服務】：{service}
     【告警描述】：{description}
+    【即時指標數據】：
+    {json.dumps(telemetry_data, ensure_ascii=False)}
     【MkDocs Runbook 參考內容】：
     {sop_content}
+
+    請輸出標準 JSON：
+    {{
+      "root_cause_hypothesis": "核心根因假設 (80字內)",
+      "confidence_score": 85,
+      "recommended_actions": ["即時處置動作一", "根本預防措施二"],
+      "suggested_remediation_action": "scale_db_pool",
+      "summary_markdown": "在 Teams 卡片呈現的Markdown重點摘要 (150字內)"
+    }}
     """
 
     response = anthropic_client.messages.create(
         model="claude-3-5-sonnet-20241022",
-        max_tokens=600,
+        max_tokens=800,
         temperature=0.2,
         system=system_prompt,
         messages=[{"role": "user", "content": user_prompt}]
     )
 
-    return {
-        "analysis_markdown": response.content[0].text,
-        "runbook_reference": sop_content[:200] + "..."
-    }
+    try:
+        parsed_result = json.loads(response.content[0].text)
+    except Exception:
+        parsed_result = {
+            "root_cause_hypothesis": "解析 AI 回應為 JSON 失敗",
+            "confidence_score": 50,
+            "recommended_actions": ["檢閱原始告警與日誌"],
+            "suggested_remediation_action": "none",
+            "summary_markdown": response.content[0].text
+        }
+
+    return parsed_result
 ```
+
+---
+
+### I. Keep Web UI 視覺化呈現與驗證指引
+
+完成 AI RCA 工作流配置後，維運工程師可直接在 KeepHQ Web 控制台即時觀察運作成果：
+
+1. **Alerts 總覽與原位富化展示**：
+   - 登入 Keep UI（預設 `http://<keep-host>:3000`），點擊側邊欄 **Alerts**。
+   - 告警列表中將直接顯示 `ai_rca_hypothesis` 標籤與 `ai_confidence` 徽章（如 `85%`）。
+   - 點開任一告警展開側欄抽屜（Drawer），切換至 **Enrichments** 分頁，即可檢閱由 Claude 3.5 自動生成的根因推演依據、指標快照與處置指引。
+2. **工作流手動觸發與本機模擬驗證**：
+   - 可利用 Keep CLI 或 Webhook API 模擬注入測試告警驗證整條推理鏈：
+
+     ```bash
+     # 模擬向 Keep 發送測試告警
+     curl -X POST http://localhost:8080/v1/alerts/event/prometheus \
+       -H "Authorization: Bearer KEEP_INGEST_API_KEY_SECRET" \
+       -H "Content-Type: application/json" \
+       -d '{
+         "receiver": "keep-aiops-hub",
+         "status": "firing",
+         "alerts": [{
+           "status": "firing",
+           "labels": {
+             "alertname": "InHouseApiHighErrorRate",
+             "severity": "critical",
+             "service": "payment-gateway-api",
+             "environment": "production"
+           },
+           "annotations": {
+             "summary": "自研支付網關 API 錯誤率超過 5%",
+             "description": "過去 2 分鐘內 HTTP 5xx 錯誤率達 12.8%，觸發臨界線。",
+             "runbook_url": "https://windcoldchen.github.io/windcold-kb/notes/workflow/"
+           },
+           "startsAt": "2026-10-23T05:00:00Z"
+         }]
+       }'
+     ```
+
+   - 在 Keep **History (Execution Logs)** 頁籤中即可檢視各步驟執行時間、Claude 回應與 Enrichment 寫入日誌。
+
+---
+
+### J. 資料安全、脫敏與合規防線
+
+在將企業內部的告警資料與指標傳遞至大模型進行 RCA 前，必須設立三道資安防護閘門：
+
+1. **機敏資訊正則脫敏 (Data Sanitization)**：
+   - 在 Prompt 動態組裝前，利用正則過濾器自動隱匿資料庫連線密碼、JWT Token、內部憑證、身分證號或手機號碼等 PII 資訊：
+
+     ```python
+     # 脫敏正則遮蔽範例
+     sanitized_desc = re.sub(r'(password|token|secret)=([^\s&]+)', r'\1=***REDACTED***', raw_desc, flags=re.I)
+     ```
+
+2. **零訓練承諾 (Zero Data Retention / Enterprise Privacy)**：
+   - 商業大模型 API（如 Anthropic Claude API、OpenAI API for Teams/Enterprise）皆預設遵循 API 資料不被用於模型訓練的規範。
+3. **Air-Gapped 本地私有化隔離部署**：
+   - 國防、金融或嚴苛法規要求時序與拓撲結構不得接觸網際網路者，優先採行 **Section 4-E** 介紹的內部 **Ollama + DeepSeek-R1 / Qwen 2.5-Coder** 方案，實現 100% 離線推論與零資料外洩。
 
 ---
 
