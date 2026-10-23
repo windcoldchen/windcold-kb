@@ -23,7 +23,7 @@ tags:
 
 > [!TIP]
 > **完整可執行 Demo 專案已開源**：
-> 本指南介紹的完整架構與 C# / .NET 8 示範微服務已開源發布於 GitHub：[windcoldchen/otel-victoriametrics-dotnet-demo](https://github.com/windcoldchen/otel-victoriametrics-dotnet-demo)。支援 `docker compose up` 一鍵啟動包含 .NET 8 Web API、OTel Collector、VictoriaMetrics、VictoriaLogs、VictoriaTraces 與 Grafana 的完整端到端觀測性環境。
+> 本指南介紹的完整架構與 C# / .NET 10 示範微服務已開源發布於 GitHub：[windcoldchen/otel-victoriametrics-dotnet-demo](https://github.com/windcoldchen/otel-victoriametrics-dotnet-demo)。專案已升級至 .NET 10 並整合 Valkey 9、Kafka 3.9、OpenSearch 3 與 PostgreSQL 17，支援一鍵編排 11 大核心服務。完整專案架構與 CI/CD 落地指南請參閱專屬文檔：[【實戰專案】 .NET 10 + OTel + VictoriaMetrics 全家桶實戰專案](otel-victoriametrics-dotnet-demo.md)。
 
 本架構遵循**「前端採集大一統，後端儲存極致化」**的核心設計哲學：
 
