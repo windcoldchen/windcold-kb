@@ -6,8 +6,16 @@
 
 ## 1. 代理權限與自動化原則 (Permissions & Workflow)
 
-1. **允許自動執行指令**：
-   - 允許 Agent 直接執行 `git` 與 `GitHub CLI (gh)` 相關指令。
+1. **全面放行 Git 與 GitHub 指令 (Always Allow All Git & GitHub Commands)**：
+   - 本儲存庫對 Agent 完全授權自動執行所有 `git` 指令，包括但不限於：
+     - `git status`, `git diff`, `git log`
+     - `git branch`, `git checkout`, `git switch`
+     - `git add`, `git commit`, `git push`, `git pull`, `git fetch`
+     - `git stash`, `git merge`, `git rebase`
+   - 授權執行所有 `GitHub CLI (gh)` 指令，包括：
+     - `gh pr create`, `gh pr checks`, `gh pr view`, `gh pr merge`
+     - `gh run list`, `gh run view`, `gh auth token`
+   - 以上所有指令一律視為預設許可（Pre-approved / Always Allowed），Agent 應直接自動執行，無須向使用者發起確認或詢問。
 2. **允許自動合併 Pull Request**：
    - 本儲存庫授權 Agent 在完成需求並確認 CI 綠燈後，自動執行 Squash & Merge：
 
