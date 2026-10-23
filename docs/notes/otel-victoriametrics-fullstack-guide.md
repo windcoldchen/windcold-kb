@@ -130,7 +130,7 @@ services:
 
   # 2. VictoriaLogs (結構化日誌資料庫)
   victoria-logs:
-    image: victoriametrics/victoria-logs:v1.8.0
+    image: victoriametrics/victoria-logs:v1.53.0
     container_name: victoria-logs
     restart: always
     ports:
