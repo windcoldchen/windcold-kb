@@ -306,10 +306,185 @@ flowchart LR
 
 ---
 
-## 8. 總結
+## 8. 自動化實戰：透過 AWX (Ansible) 一鍵部署 EKS-D 並自動納入 Rancher
 
-透過 **Proxmox VE + Amazon EKS Distro + Rancher** 方案：
+手動在 Proxmox 上開立虛擬機、初始化 `kubeadm`、登入 Rancher 匯入雖然彈性高，但對於需要快速開拓多個業務或測試環境的團隊而言，**將全流程封裝至 AWX (Ansible Automation Platform) 達成全自動無人值守（Zero-Touch Provisioning）** 是邁向平台工程（Platform Engineering）的最佳實踐。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as 維運人員 / 開發者
+    participant AWX as AWX 控制台 (Job Template)
+    participant PVE as Proxmox VE API
+    participant EKSD as 新建立的 EKS-D 節點群
+    participant Rancher as Rancher Manager API
+
+    Admin->>AWX: 填寫 Survey 表單 (叢集名稱, 節點數量, IP 區段) 並啟動
+    AWX->>PVE: 1. 呼叫 Proxmox API 自動 Clone VM 並啟動
+    AWX->>EKSD: 2. SSH 執行 containerd、EKS-D 核心安裝與 kubeadm init
+    AWX->>Rancher: 3. REST API 呼叫 POST /v3/clusters 建立通用叢集
+    Rancher-->>AWX: 4. 回傳專屬註冊 Token 與 importYaml
+    AWX->>EKSD: 5. 透過 kubectl 自動 Apply 該 importYaml (部署 cattle-cluster-agent)
+    EKSD->>Rancher: 6. 建立安全通道，回報節點狀態 Ready
+    AWX-->>Admin: 7. 叢集全自動交付完成，已就緒於 Rancher 控制台！
+```
+
+### A. 全自動化 Ansible Playbook 設計 (`deploy-eksd-to-rancher.yml`)
+
+此 Playbook 整合了三層自動化：Proxmox 虛擬機開立 ➔ EKS-D 初始化 ➔ Rancher API 註冊匯入。
+
+```yaml
+---
+- name: Zero-Touch Provisioning of EKS-D on Proxmox and Auto-Import to Rancher
+  hosts: localhost
+  gather_facts: false
+  vars:
+    pve_api_host: "192.168.10.11"
+    pve_api_user: "root@pam"
+    pve_template_id: 9000
+    cluster_name: "{{ target_cluster_name | default('eksd-dev-01') }}"
+    rancher_url: "https://rancher.internal.domain"
+    rancher_token: "{{ lookup('env', 'RANCHER_BEARER_TOKEN') }}"
+
+  tasks:
+    # -------------------------------------------------------------
+    # 階段 1：透過 Proxmox API 自動克隆並開機虛擬機
+    # -------------------------------------------------------------
+    - name: Clone Master and Worker VMs from Cloud-Init Template
+      community.general.proxmox_kvm:
+        api_host: "{{ pve_api_host }}"
+        api_user: "{{ pve_api_user }}"
+        api_token_id: "{{ lookup('env', 'PVE_TOKEN_ID') }}"
+        api_token_secret: "{{ lookup('env', 'PVE_TOKEN_SECRET') }}"
+        node: "pve-01"
+        clone: "{{ pve_template_id }}"
+        name: "{{ item.name }}"
+        vmid: "{{ item.vmid }}"
+        memory: "{{ item.memory }}"
+        cores: "{{ item.cores }}"
+        net0: "virtio,bridge=vmbr0"
+        ipconfig0: "ip={{ item.ip }}/24,gw=192.168.30.1"
+        state: started
+      loop:
+        - { name: "{{ cluster_name }}-cp-01", vmid: 401, cores: 4, memory: 8192, ip: "192.168.30.101" }
+        - { name: "{{ cluster_name }}-worker-01", vmid: 411, cores: 8, memory: 16384, ip: "192.168.30.111" }
+        - { name: "{{ cluster_name }}-worker-02", vmid: 412, cores: 8, memory: 16384, ip: "192.168.30.112" }
+
+    - name: Wait for VMs to be reachable via SSH
+      ansible.builtin.wait_for:
+        host: "192.168.30.101"
+        port: 22
+        timeout: 180
+
+- name: Bootstrap Amazon EKS Distro Cluster
+  hosts: "{{ cluster_name }}-cp-01"
+  tasks:
+    - name: Install containerd and EKS-D components
+      ansible.builtin.include_role:
+        name: eks_distro_bootstrap
+
+    - name: Initialize Kubernetes Control Plane
+      ansible.builtin.command: >
+        kubeadm init
+        --image-repository public.ecr.aws/eks-distro/kubernetes
+        --pod-network-cidr 10.244.0.0/16
+      args:
+        creates: /etc/kubernetes/admin.conf
+
+    - name: Install Cilium CNI
+      ansible.builtin.command: >
+        cilium install --version 1.15.5
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+
+- name: Register and Auto-Import EKS-D Cluster to Rancher
+  hosts: localhost
+  tasks:
+    # -------------------------------------------------------------
+    # 階段 2：呼叫 Rancher REST API 建立匯入型叢集並取得 Registration YAML
+    # -------------------------------------------------------------
+    - name: Create Generic Cluster entry in Rancher
+      ansible.builtin.uri:
+        url: "{{ rancher_url }}/v3/clusters"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ rancher_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "{{ cluster_name }}"
+          description: "Auto-provisioned EKS-D cluster on Proxmox via AWX"
+        status_code: [201]
+      register: rancher_cluster_resp
+
+    - name: Extract Created Cluster ID
+      ansible.builtin.set_fact:
+        rancher_cluster_id: "{{ rancher_cluster_resp.json.id }}"
+
+    - name: Retrieve Cluster Registration Token and Import Manifest
+      ansible.builtin.uri:
+        url: "{{ rancher_url }}/v3/clusterregistrationtokens?clusterId={{ rancher_cluster_id }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ rancher_token }}"
+        status_code: [200]
+      register: reg_tokens
+      until: reg_tokens.json.data | length > 0
+      retries: 10
+      delay: 3
+
+    - name: Save Import Manifest URL
+      ansible.builtin.set_fact:
+        import_manifest_url: "{{ reg_tokens.json.data[0].manifestUrl }}"
+
+    # -------------------------------------------------------------
+    # 階段 3：在新建立的 EKS-D 叢集中套用 Rancher Agent YAML
+    # -------------------------------------------------------------
+    - name: Deploy Rancher Cluster Agent into EKS-D
+      kubernetes.core.k8s:
+        src: "{{ import_manifest_url }}"
+        state: present
+        kubeconfig: /tmp/{{ cluster_name }}-kubeconfig
+
+    - name: Verify Cluster State in Rancher
+      ansible.builtin.uri:
+        url: "{{ rancher_url }}/v3/clusters/{{ rancher_cluster_id }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ rancher_token }}"
+      register: cluster_status
+      until: cluster_status.json.state == "active"
+      retries: 30
+      delay: 10
+
+    - name: Output Provisioning Result
+      ansible.builtin.debug:
+        msg: "EKS-D Cluster {{ cluster_name }} successfully provisioned and active in Rancher!"
+```
+
+---
+
+### B. AWX 企業級實作配置亮點
+
+1. **AWX Survey（自助服務入口）**：
+   * 在 AWX 的 Job Template 中開啟 **Survey** 功能，將參數轉換為表單欄位：
+     * `target_cluster_name`：字串輸入（如 `prod-payment-eksd`）。
+     * `worker_nodes_count`：整數選單（1 ~ 10 台）。
+     * `pve_resource_pool`：下拉選單（選定目標 PVE 叢集或專用節點）。
+   * 開發或維運工程師只需要在 AWX 點擊 **Launch** 並填寫表單，其餘底層建立皆自動化完成。
+2. **憑證安全集中保管（Credentials Management）**：
+   * **Proxmox API Token**：儲存為 AWX 自訂 Credential，避免 Token 寫死於 Git 儲存庫。
+   * **Rancher API Bearer Token**：透過 AWX 加密注入，確保敏感密鑰不在終端日誌洩漏。
+3. **RBAC 與審計追蹤（Audit Trail）**：
+   * 誰在何時、因應何種需求在 Proxmox 上開拓了哪一座 EKS-D 叢集，所有輸入參數、執行耗時與標準輸出全數保存在 AWX 的不可變日誌（Audit Log）中，完美滿足企業法規遵從（Compliance）要求。
+
+---
+
+## 9. 總結
+
+透過 **Proxmox VE + Amazon EKS Distro + Rancher + AWX** 方案：
 
 1. **核心一致性**：在地端私有雲中直接運行經過 AWS 安全強化的官方 EKS 核心元件，徹底消除地端與公有雲行為不一致的隱患。
 2. **極致成本效益**：省去公有雲昂貴的託管費用，在自家 Proxmox VE 伺服器上壓榨出最大硬體效能。
 3. **集中治理能力**：結合 Rancher 的多叢集身分管理與 App Catalog，讓地端 EKS-D 獲得與現代公有雲同等流暢的維運體驗。
+4. **平台工程自動化**：透過 AWX 整合 Proxmox 與 Rancher API，實現從虛擬機開立、EKS-D 初始化到平台註冊納管的 100% 全無人值守自動化流程。
