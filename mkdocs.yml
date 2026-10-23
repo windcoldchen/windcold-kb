@@ -151,6 +151,7 @@ nav:
       - Rancher + RKE2 + Proxmox 私有雲架構: notes/rancher-rke2-proxmox-guide.md
       - 透過 Rancher 部署下游 RKE2 業務叢集: notes/rancher-provision-rke2-cluster.md
       - Grafana Tanka + AWX 資源修剪實戰: notes/tanka-awx-k8s-pruning-guide.md
+      - Proxmox + EKS Distro + Rancher 混合雲架構: notes/proxmox-eksd-rancher-guide.md
   - 最新異動: changelog.md
   - 標籤索引: tags.md
   - 關於: about.md
