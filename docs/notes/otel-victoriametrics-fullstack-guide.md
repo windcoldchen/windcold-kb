@@ -17,10 +17,13 @@ tags:
 # OpenTelemetry + VictoriaMetrics 全家桶架構與落地實戰指南 :material-rocket-launch:
 
 > 在現代分散式架構與微服務體系中，**OpenTelemetry (OTel)** 憑藉其開放標準、跨語言 SDK 與無與倫比的代碼層生態，已成為全球遙測數據**收集與語意規範**的公認王者；而 **VictoriaMetrics 全家桶 (VictoriaMetrics + VictoriaLogs + VictoriaTraces)** 則憑藉自研 MergeTree 儲存引擎、超高壓縮比與零外部依賴特性，成為**海量數據儲存與秒級查詢**的性價比之巔。本文將兩者深度結合，提供從 OTel 採集流水線、後端三位一體儲存、微服務埋點到 Grafana 跨維度聯動的完整企業級實戰藍圖。
-
 ---
 
 ## 1. 方案概述與端到端全景架構
+
+> [!TIP]
+> **完整可執行 Demo 專案已開源**：
+> 本指南介紹的完整架構與 C# / .NET 8 示範微服務已開源發布於 GitHub：[windcoldchen/otel-victoriametrics-dotnet-demo](https://github.com/windcoldchen/otel-victoriametrics-dotnet-demo)。支援 `docker compose up` 一鍵啟動包含 .NET 8 Web API、OTel Collector、VictoriaMetrics、VictoriaLogs、VictoriaTraces 與 Grafana 的完整端到端觀測性環境。
 
 本架構遵循**「前端採集大一統，後端儲存極致化」**的核心設計哲學：
 
