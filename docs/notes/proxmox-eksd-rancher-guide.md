@@ -480,7 +480,223 @@ sequenceDiagram
 
 ---
 
-## 9. 總結
+## 9. Day-2 運維實務：EKS-D 版本原地升級與 Worker 節點水平擴充
+
+在生產環境長期維運中，叢集的**平滑版本升級（In-Place Rolling Upgrade）** 與 **運算資源水平擴充（Worker Node Scaling）** 是 SRE 最核心的日常任務。
+
+---
+
+### A. EKS-D 版本原地平滑升級 (Rolling Upgrade)
+
+EKS-D 遵循 Kubernetes 官方標準升級規範：
+
+* **每次僅升級一個次要版本**（例如 `v1.29.x` ➔ `v1.30.x`），不可跨版本跳躍升級。
+* **嚴格的升級順序**：備份 etcd ➔ 升級第一台 Control Plane ➔ 升級其餘 Control Plane ➔ 逐台 Drain 並升級 Worker 節點。
+
+```mermaid
+flowchart TD
+    Step0["0. 建立 etcd 災難備份快照"] --> Step1["1. 第一台 Control Plane<br/>(kubeadm upgrade apply)"]
+    Step1 --> Step2["2. 其餘 Control Plane 節點<br/>(kubeadm upgrade node)"]
+    Step2 --> Step3["3. 逐台 Drain Worker 節點<br/>(kubectl drain)"]
+    Step3 --> Step4["4. 替換新版 kubelet / kubectl<br/>並重啟服務"]
+    Step4 --> Step5["5. 解除節點保護 (uncordon)<br/>Rancher 即時偵測新版本"]
+```
+
+#### 1. 前置作業：建立 etcd 快照
+
+在任意 Control Plane 節點執行備份：
+
+```bash
+sudo ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key \
+  snapshot save /tmp/etcd-backup-$(date +%Y%m%d).db
+```
+
+#### 2. 升級第一台 Control Plane (`eksd-cp-01`)
+
+```bash
+# 1. 定義目標升級版本 (以 EKS-D v1.30.3 為例)
+export NEW_K8S_VER="v1.30.3"
+export NEW_TARBALL_URL="https://distro.eks.amazonaws.com/kubernetes-1-30/releases/2/artifacts/kubernetes"
+
+# 2. 下載新版 kubeadm
+cd /usr/local/bin
+sudo curl -LO "${NEW_TARBALL_URL}/${NEW_K8S_VER}/bin/linux/amd64/kubeadm"
+sudo chmod +x kubeadm
+
+# 3. 檢查升級計畫並執行控制平面核心升級
+sudo kubeadm upgrade plan
+sudo kubeadm upgrade apply ${NEW_K8S_VER} --yes
+
+# 4. 驅逐節點負載
+kubectl drain eksd-cp-01 --ignore-daemonsets
+
+# 5. 更新 kubelet 與 kubectl 二進位檔
+sudo curl -LO "${NEW_TARBALL_URL}/${NEW_K8S_VER}/bin/linux/amd64/kubelet"
+sudo curl -LO "${NEW_TARBALL_URL}/${NEW_K8S_VER}/bin/linux/amd64/kubectl"
+sudo chmod +x kubelet kubectl
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+
+# 6. 解除保護
+kubectl uncordon eksd-cp-01
+```
+
+#### 3. 升級其餘 Control Plane 節點 (`eksd-cp-02`, `eksd-cp-03`)
+
+登入至其餘 Master 節點依序執行：
+
+```bash
+# 下載新版 kubeadm
+cd /usr/local/bin && sudo curl -LO "${NEW_TARBALL_URL}/${NEW_K8S_VER}/bin/linux/amd64/kubeadm" && sudo chmod +x kubeadm
+
+# 執行節點升級
+sudo kubeadm upgrade node
+
+# 替換 kubelet 與 kubectl 並重啟
+sudo curl -LO "${NEW_TARBALL_URL}/${NEW_K8S_VER}/bin/linux/amd64/kubelet"
+sudo curl -LO "${NEW_TARBALL_URL}/${NEW_K8S_VER}/bin/linux/amd64/kubectl"
+sudo chmod +x kubelet kubectl
+sudo systemctl daemon-reload && sudo systemctl restart kubelet
+```
+
+#### 4. 逐台滾動升級 Worker 節點
+
+在 Master 節點操作驅逐，隨後登入 Worker 節點進行更新：
+
+```bash
+# 在 Master 執行：驅逐該 Worker 上的業務 Pod
+kubectl drain eksd-worker-01 --ignore-daemonsets --delete-emptydir-data
+
+# 登入 eksd-worker-01 執行：
+cd /usr/local/bin
+sudo curl -LO "${NEW_TARBALL_URL}/${NEW_K8S_VER}/bin/linux/amd64/kubeadm" && sudo chmod +x kubeadm
+sudo kubeadm upgrade node
+
+sudo curl -LO "${NEW_TARBALL_URL}/${NEW_K8S_VER}/bin/linux/amd64/kubelet"
+sudo curl -LO "${NEW_TARBALL_URL}/${NEW_K8S_VER}/bin/linux/amd64/kubectl"
+sudo chmod +x kubelet kubectl
+sudo systemctl daemon-reload && sudo systemctl restart kubelet
+
+# 回到 Master 執行：解除保護，允許 Pod 調度回該節點
+kubectl uncordon eksd-worker-01
+```
+
+* **Rancher 體驗**：全部節點升級完成後，Rancher 的 `cattle-cluster-agent` 會自動感應版本更新，Rancher 控制台上的叢集版本會自動切換為新版，**完全不影響現存業務運行，線上零停機**。
+
+---
+
+### B. Worker 節點水平擴充 (Horizontal Scaling)
+
+當業務量增長需要為 EKS-D 擴充運算資源時，可採用手動快速擴充或 AWX 自動化擴充兩種模式：
+
+#### 模式一：Proxmox 手動快速擴充
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as 維運工程師
+    participant PVE as Proxmox VE
+    participant CP as EKS-D Master
+    participant NewWorker as 新 Worker 節點 (eksd-worker-03)
+    participant Rancher as Rancher Manager
+
+    Admin->>PVE: 1. Clone Cloud-Init 範本並啟動 (分配 IP: 192.168.30.113)
+    Admin->>CP: 2. 執行 kubeadm token create --print-join-command
+    CP-->>Admin: 回傳具時效性之 join 指令與 hash
+    Admin->>NewWorker: 3. 安裝 containerd 與 EKS-D 二進位檔
+    Admin->>NewWorker: 4. 貼上 kubeadm join 執行加入
+    NewWorker->>CP: 完成 TLS 證書簽發與節點註冊
+    NewWorker-->>Rancher: 5. Rancher 自動感應新節點，派發 agent 容器
+    Rancher-->>Admin: 新節點狀態顯示為 Ready / Active！
+```
+
+1. **在 Proxmox VE 複製新 VM**：
+   * 從 Ubuntu Cloud-Init 範本快速 Clone 出 `eksd-worker-03`（設定靜態 IP，例如 `192.168.30.113`）。
+2. **在新 VM 初始化環境**：
+   * 關閉 Swap、載入 `overlay` 與 `br_netfilter` 核心模組、安裝 `containerd`。
+   * 下載與目前叢集相同版本的 EKS-D `kubelet`, `kubeadm`, `kubectl` 與 CNI 外掛。
+3. **從 Control Plane 產出加入指令**：
+   在任意 Master 節點執行：
+
+   ```bash
+   kubeadm token create --print-join-command
+   ```
+
+   終端將輸出：
+
+   ```bash
+   kubeadm join 192.168.30.100:6443 --token <token> \
+     --discovery-token-ca-cert-hash sha256:<hash>
+   ```
+
+4. **在新 Worker 執行 Join 指令**：
+   以 `sudo` 權限執行該指令。數十秒後，在 Master 執行 `kubectl get nodes`，即可看見 `eksd-worker-03` 已加入。
+5. **Rancher 自動感知**：
+   Rancher 內部的 `cattle-cluster-agent` 會自動偵測到新節點加入，並在該節點自動啟動監控與日誌收集 DaemonSet，無須人工干預。
+
+---
+
+#### 模式二：透過 AWX (Ansible) 一鍵自動化擴充節點
+
+對於成熟的自動化環境，可將節點擴充寫入獨立的 AWX Playbook (`scale-eksd-worker.yml`)：
+
+```yaml
+---
+- name: Automated Worker Scaling for EKS-D
+  hosts: localhost
+  gather_facts: false
+  vars:
+    pve_node: "pve-01"
+    template_vmid: 9000
+    new_worker_name: "{{ target_worker_name }}" # 由 AWX Survey 動態傳入
+    new_worker_vmid: "{{ target_worker_vmid }}"
+    new_worker_ip: "{{ target_worker_ip }}"
+
+  tasks:
+    # 1. 呼叫 Proxmox API 自動克隆開機
+    - name: Clone New Worker VM in Proxmox
+      community.general.proxmox_kvm:
+        node: "{{ pve_node }}"
+        clone: "{{ template_vmid }}"
+        name: "{{ new_worker_name }}"
+        vmid: "{{ new_worker_vmid }}"
+        memory: 16384
+        cores: 8
+        ipconfig0: "ip={{ new_worker_ip }}/24,gw=192.168.30.1"
+        state: started
+
+    - name: Wait for SSH Availability
+      ansible.builtin.wait_for:
+        host: "{{ new_worker_ip }}"
+        port: 22
+        timeout: 180
+
+    # 2. 連線至 Control Plane 取得新鮮的 join token
+    - name: Generate Fresh Join Command
+      ansible.builtin.command: kubeadm token create --print-join-command
+      delegate_to: "192.168.30.101"
+      register: join_cmd_raw
+
+    # 3. 在新 Worker 節點執行加入
+    - name: Execute Kubeadm Join on New Worker
+      ansible.builtin.command: "{{ join_cmd_raw.stdout }}"
+      delegate_to: "{{ new_worker_ip }}"
+      become: true
+
+    - name: Apply Worker Label
+      ansible.builtin.command: >
+        kubectl label node {{ new_worker_name }} node-role.kubernetes.io/worker=true
+      delegate_to: "192.168.30.101"
+```
+
+* **效益**：維運人員只需在 AWX UI 點擊 **Launch**，填入 `eksd-worker-03` 與 IP，底層從開 VM、灌系統到加入 K8s 叢集 2 分鐘內全自動搞定！
+
+---
+
+## 10. 總結
 
 透過 **Proxmox VE + Amazon EKS Distro + Rancher + AWX** 方案：
 
@@ -488,3 +704,4 @@ sequenceDiagram
 2. **極致成本效益**：省去公有雲昂貴的託管費用，在自家 Proxmox VE 伺服器上壓榨出最大硬體效能。
 3. **集中治理能力**：結合 Rancher 的多叢集身分管理與 App Catalog，讓地端 EKS-D 獲得與現代公有雲同等流暢的維運體驗。
 4. **平台工程自動化**：透過 AWX 整合 Proxmox 與 Rancher API，實現從虛擬機開立、EKS-D 初始化到平台註冊納管的 100% 全無人值守自動化流程。
+5. **穩健 Day-2 運維**：標準化且平滑的原地版本升級路徑，搭配彈性靈活的 Worker 節點水平伸縮，兼顧系統高可用與業務爆發力。
