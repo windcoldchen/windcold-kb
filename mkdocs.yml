@@ -152,6 +152,7 @@ nav:
       - OTel vs VictoriaMetrics 全家餐評比: notes/otel-vs-victoriametrics-fullstack.md
       - Prometheus+Loki+Tempo vs VM 全家桶評比: notes/prometheus-loki-tempo-vs-victoriametrics.md
       - OTel + VictoriaMetrics 全家桶實戰指南: notes/otel-victoriametrics-fullstack-guide.md
+      - .NET 10 OTel + VictoriaMetrics 實戰專案: notes/otel-victoriametrics-dotnet-demo.md
       - Rancher + RKE2 + Proxmox 私有雲架構: notes/rancher-rke2-proxmox-guide.md
       - 透過 Rancher 部署下游 RKE2 業務叢集: notes/rancher-provision-rke2-cluster.md
       - Grafana Tanka + AWX 資源修剪實戰: notes/tanka-awx-k8s-pruning-guide.md
