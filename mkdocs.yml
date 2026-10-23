@@ -149,6 +149,7 @@ nav:
       - Pushover 行動推播指南: notes/pushover-guide.md
       - VictoriaMetrics 全家桶架構解析: notes/victoriametrics-ecosystem-guide.md
       - VictoriaMetrics vs OTel 指標採集對比: notes/victoriametrics-vs-opentelemetry-metrics.md
+      - OTel vs VictoriaMetrics 全家餐評比: notes/otel-vs-victoriametrics-fullstack.md
       - Rancher + RKE2 + Proxmox 私有雲架構: notes/rancher-rke2-proxmox-guide.md
       - 透過 Rancher 部署下游 RKE2 業務叢集: notes/rancher-provision-rke2-cluster.md
       - Grafana Tanka + AWX 資源修剪實戰: notes/tanka-awx-k8s-pruning-guide.md
