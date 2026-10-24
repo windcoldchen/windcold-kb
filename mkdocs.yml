@@ -141,6 +141,7 @@ nav:
   - 知識筆記:
       - 範例筆記: notes/example.md
       - 開發工作流: notes/workflow.md
+      - Jira 企業級發布管理實戰: notes/jira-release-management-guide.md
       - Azure Static Web Apps 方案: notes/azure-static-web-apps.md
       - Cloudflare Pages + Access 方案: notes/cloudflare-pages-entra-id.md
       - Self-Hosted GitLab CI/CD 方案: notes/gitlab-ci-cd-deployment.md
