@@ -147,6 +147,7 @@ nav:
       - Self-Hosted GitLab CI/CD 方案: notes/gitlab-ci-cd-deployment.md
       - mkdocs-mcp 使用指南: notes/mkdocs-mcp-guide.md
       - AIOps 智慧可觀測性方案: notes/observability-aiops-architecture.md
+      - RunWhen 智慧排障與自動化實戰: notes/runwhen-kubernetes-guide.md
       - Pushover 行動推播指南: notes/pushover-guide.md
       - VictoriaMetrics 全家桶架構解析: notes/victoriametrics-ecosystem-guide.md
       - VictoriaMetrics vs OTel 指標採集對比: notes/victoriametrics-vs-opentelemetry-metrics.md
