@@ -1,14 +1,22 @@
 # 歡迎來到 Windcold 知識庫 :material-book-open-page-variant:
 
-> 記錄技術經驗、架構思維與日常工具的個人數位花園。
+> 基於 **LLM-Wiki + Material for MkDocs** 架構打造的個人技術與架構數位花園。
 
-本知識庫使用 [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) 搭建，並透過 **GitHub Actions** 進行嚴格語法檢核與自動化發布至 **GitHub Pages**。
+本知識庫採用 **Andrej Karpathy** 所倡導的「持續編譯式知識庫（Compiling Stateful Wiki）」理念，結合 AI 代理人持續進行知識蒸餾、交叉鏈接與版本維護，並透過 **GitHub Actions** 進行嚴格語法檢核與自動化發布至 **GitHub Pages**。
 
 ---
 
 ## :material-compass-outline: 快速導覽
 
 <div class="grid cards" markdown>
+
+-   :material-brain:{ .lg .middle } __LLM-Wiki 智慧架構__
+
+    ---
+
+    深入了解本專案的三層知識生命週期（Raw Ingestion ➔ LLM Compiler ➔ MkDocs / MCP / llms.txt）。
+
+    [:octicons-arrow-right-24: 前往架構指南](notes/llm-wiki-architecture.md)
 
 -   :material-rocket-launch:{ .lg .middle } __快速上手__
 
@@ -30,9 +38,9 @@
 
     ---
 
-    涵蓋後端開發、系統架構、DevOps 與工程最佳實踐。
+    涵蓋後端開發、系統架構、DevOps、可觀測性與 SRE 工程最佳實踐。
 
-    [:octicons-arrow-right-24: 探索筆記](notes/example.md)
+    [:octicons-arrow-right-24: 探索技術筆記](notes/example.md)
 
 -   :material-history:{ .lg .middle } __最新異動__
 
@@ -65,12 +73,12 @@
 ## :material-lightning-bolt: 核心特色與發布流程
 
 ```mermaid
-graph LR
-    A[Markdown 筆記] --> B(開立分支 & 建立 PR)
-    B --> C{CI 語法檢查<br/>mkdocs build --strict}
-    C -->|通過| D[合併至 main]
-    D --> E[GitHub Pages 自動發布]
-    E --> F((即時在線知識庫))
+flowchart LR
+    A["原始素材 (sources/)"] --> B["AI Agent 編譯器"]
+    B --> C["結構化 Markdown (docs/)"]
+    C --> D{"CI 語法檢查<br/>mkdocs build --strict"}
+    D -->|"通過"| E["GitHub Pages 自動發布"]
+    D -->|"通過"| F["llms.txt & MCP 線上服務"]
 ```
 
 - **全域即時搜尋**：支援關鍵字即時提示、語意高亮與分享連結。

@@ -1,7 +1,7 @@
 {
   "name": "windcold-kb",
   "private": true,
-  "description": "Windcold 知識庫",
+  "description": "Windcold LLM-Wiki + MkDocs 智慧知識庫",
   "scripts": {
     "lint:md": "markdownlint-cli2 \"**/*.md\"",
     "lint:md:fix": "markdownlint-cli2 --fix \"**/*.md\"",

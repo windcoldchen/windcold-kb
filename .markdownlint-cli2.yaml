@@ -7,3 +7,4 @@ ignores:
   - "site/**"
   - "node_modules/**"
   - ".cache/**"
+  - "sources/**"
