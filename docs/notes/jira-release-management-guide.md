@@ -127,7 +127,7 @@ flowchart TD
 | **Downtime Required** | Radio (`Yes` / `No`) | 必填 | 是否需暫停對外服務。若為 `Yes` 需附上公關與客服通知方案。 |
 | **Change Risk Level** | Select (`Low`, `Med`, `High`, `Crit`) | 必填 | 風險評級。`High` 與 `Crit` 需額外進行架構長簽核。 |
 | **Rollback Plan** | Multi-line Text (Markdown) | 必填 | **關鍵合規欄位**：詳細回滾指令、資料庫回退腳本與耗時預估。 |
-| **DB Migration Involved**| Radio (`None`, `Compatible`, `Breaking`) | 必填 | 資料庫結構異動屬性。嚴禁在熱部署中包含破壞性改動。 |
+| **DB Migration Involved** | Radio (`None`, `Compatible`, `Breaking`) | 必填 | 資料庫結構異動屬性。嚴禁在熱部署中包含破壞性改動。 |
 | **CI/CD Pipeline Link** | URL | 選填 | GitHub Actions / GitLab Pipeline 執行連結。 |
 | **Observability Dashboard** | URL | 選填 | 該次發布對應之 Grafana / VictoriaMetrics 儀表板 URL。 |
 
