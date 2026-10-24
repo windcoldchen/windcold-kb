@@ -84,3 +84,17 @@ MkDocs Material 整合之 Mermaid 解析器對未引號包裹的符號較為敏�
 - `refactor(mkdocs): 重構 ...`
 - `feat: 新增 ...`
 - `chore: 更新 ...`
+
+---
+
+## 5. LLM-Wiki 編譯器協同規範 (LLM-Wiki Compiler Guidelines)
+
+本專案採用 **LLM-Wiki + MkDocs** 架構：
+
+1. **三層知識架構**：
+   - **Tier 1 (原始進料)**：`sources/` 目錄存放使用者丟入的 raw 素材、草稿與會議紀錄。
+   - **Tier 2 (知識本體)**：`docs/` 目錄為由 LLM 編譯沉澱的高品質知識庫。
+   - **Tier 3 (機器介面)**：`llms.txt` / `llms-full.txt` 與 MCP 伺服器（`@serverless-dna/mkdocs-mcp`）。
+2. **編譯工作流程**：
+   - Agent 收到素材後，遵循 `WIKI_SCHEMA.md` 四大階段（Ingest ➔ Synthesize ➔ Cross-Link ➔ QA & Verify）。
+   - 撰寫文檔時務必進行雙向交叉引用（Cross-linking），避免孤島頁面。
