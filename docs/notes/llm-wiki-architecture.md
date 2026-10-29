@@ -111,6 +111,7 @@ flowchart TD
   - 討論分散式鏈路追蹤時，主動引用 [OpenTelemetry + VictoriaMetrics 實戰指南](otel-victoriametrics-fullstack-guide.md)。
   - 討論上線部署門禁時，主動引用 [Jira 企業級發布管理實戰](jira-release-management-guide.md)。
   - 討論 K8s 故障自動修復時，主動引用 [RunWhen 智慧排障實戰](runwhen-kubernetes-guide.md)。
+  - 討論在 IDE 整合多模型 AI 代理時，主動引用 [VS Code 多模型 AI 整合實戰指南](vscode-multi-ai-integration-guide.md)。
 
 ### 階段四：Quality Assurance & Verification（嚴格品質驗證）
 

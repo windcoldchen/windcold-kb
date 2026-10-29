@@ -165,6 +165,9 @@ https://windcoldchen.github.io/windcold-kb/search/search_index.json
 npm run mcp:online
 ```
 
+> [!NOTE]
+> 若要在 **VS Code** 中同時整合 **Claude Code**、**ChatGPT**、**Grok** 與 **Google AI Pro** 四大訂閱制方案並共用此 MCP 伺服器，請參閱 [VS Code 多模型 AI 整合實戰指南](vscode-multi-ai-integration-guide.md)。
+
 ---
 
 ## 5. 實際使用範例 (Prompt Examples)
