@@ -492,5 +492,6 @@ helm upgrade --install vlc vm/victoria-logs-cluster \
 
 ### 6.4 延伸整合與相關文檔
 
+- 欲於同一個 AWS EKS 東京區域叢集建置高可用分散式鏈路追蹤，請參閱姊妹篇 [AWS EKS (Tokyo Region) 部署 VictoriaTraces Cluster 跨 AZ 高可用與資料複寫安全實戰指南](aws-eks-victoriatraces-cluster-guide.md)。
 - 欲將容器日誌、應用程式指標與分散式追蹤統一收斂至本叢集，請參閱 [OpenTelemetry + VictoriaMetrics 全家桶實戰指南](otel-victoriametrics-fullstack-guide.md)。
 - 欲了解混合雲或多叢集 Kubernetes 底座管理，可參考 [Proxmox + EKS Distro + Rancher 混合雲架構](proxmox-eksd-rancher-guide.md) 與 [AIOps 智慧可觀測性方案](observability-aiops-architecture.md)。
