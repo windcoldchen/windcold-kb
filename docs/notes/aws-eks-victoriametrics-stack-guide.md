@@ -444,3 +444,4 @@ extraContainers:
 3. **鏈路追蹤叢集 (Traces)**：[AWS EKS (Tokyo Region) 部署 VictoriaTraces Cluster 跨 AZ 高可用與資料複寫安全實戰指南](aws-eks-victoriatraces-cluster-guide.md)。
 4. **應用層埋點與 Grafana 聯動**：[OpenTelemetry + VictoriaMetrics 全家桶實戰指南](otel-victoriametrics-fullstack-guide.md)。
 5. **AWS MSK 訊息佇列全棧觀測與遙測削峰**：[利用 VictoriaMetrics + VictoriaLogs + VictoriaTraces 收集與整理 AWS MSK 全棧實戰指南](aws-msk-victoria-observability-guide.md)。
+6. **AWS ElastiCache for Valkey 快取叢集全棧觀測**：[利用 VictoriaMetrics + VictoriaLogs + VictoriaTraces 收集與整理 AWS ElastiCache for Valkey 全棧實戰指南](aws-elasticache-valkey-victoria-guide.md)。
