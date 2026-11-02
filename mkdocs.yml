@@ -145,6 +145,7 @@ nav:
       - IS/SRE 團隊 AI 工作流藍圖: notes/is_sre_team_ai_workflow_blueprint.md
       - AI Agent Skills 知識庫全覽: notes/ai-agent-skills-github-repos-guide.md
       - 多 Repo AI Skills 雙軌查詢庫: notes/multi-repo-ai-skills-kb-architecture.md
+      - 企業內部 AI Skill Hub 平台: notes/internal-enterprise-ai-skill-hub-guide.md
       - VS Code 多模型 AI 整合實戰: notes/vscode-multi-ai-integration-guide.md
       - Jira 企業級發布管理實戰: notes/jira-release-management-guide.md
       - git-cliff 自動化變更日誌: notes/git-cliff-changelog-guide.md

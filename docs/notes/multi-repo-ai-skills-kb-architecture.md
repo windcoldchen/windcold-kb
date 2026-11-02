@@ -445,6 +445,7 @@ if __name__ == "__main__":
 ## 7. 延伸閱讀與關聯知識地圖
 
 - **AI Agent Skills 生態與工具鏈深度解析**：
+  - [建構企業內部 AI Skill Hub 平台：整合 Public GitHub 與內部自研技能之人機雙軌實戰指南](internal-enterprise-ai-skill-hub-guide.md)
   - [開源 AI Agent Skills (`SKILL.md`) 核心 GitHub 知識庫全景與實戰指南](ai-agent-skills-github-repos-guide.md)
   - [全能型 IS / SRE 團隊 AI 工作流與知識庫架構藍圖](is_sre_team_ai_workflow_blueprint.md)
   - [VS Code 四大訂閱制 AI 整合實戰指南 (Claude Code + ChatGPT + Grok + Google AI Pro)](vscode-multi-ai-integration-guide.md)
