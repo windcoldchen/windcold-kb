@@ -345,6 +345,7 @@ description: 當準備建立或審查涉及 EKS、EKS-D、RKE2、Grafana Tanka �
 ## 6. 延伸閱讀與關聯知識地圖
 
 - **團隊 AI 工作流與知識編譯核心**：
+  - [建構企業內部 AI Skill Hub 平台：整合 Public GitHub 與內部自研技能之人機雙軌實戰指南](internal-enterprise-ai-skill-hub-guide.md)
   - [建構「多 GitHub Repo AI Skills 聚合知識庫」：人機雙軌查詢架構與實戰指南](multi-repo-ai-skills-kb-architecture.md)
   - [全能型 IS / SRE 團隊 AI 工作流與知識庫架構藍圖](is_sre_team_ai_workflow_blueprint.md)
   - [LLM-Wiki + MkDocs 智慧知識庫架構與實戰指南](llm-wiki-architecture.md)

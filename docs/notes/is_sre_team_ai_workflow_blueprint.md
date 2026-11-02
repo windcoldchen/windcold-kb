@@ -430,6 +430,7 @@ ai-secops-finops-mr-review:
   - [LLM-Wiki + MkDocs 智慧知識庫架構與實戰指南](llm-wiki-architecture.md)
   - [開源 AI Agent Skills (SKILL.md) 核心 GitHub 知識庫全景與實戰指南](ai-agent-skills-github-repos-guide.md)
   - [建構「多 GitHub Repo AI Skills 聚合知識庫」：人機雙軌查詢架構與實戰指南](multi-repo-ai-skills-kb-architecture.md)
+  - [建構企業內部 AI Skill Hub 平台：整合 Public GitHub 與內部自研技能之人機雙軌實戰指南](internal-enterprise-ai-skill-hub-guide.md)
   - [使用 mkdocs-mcp 整合 AI 助理指南](mkdocs-mcp-guide.md)
   - [VS Code 四大訂閱制 AI 整合實戰指南](vscode-multi-ai-integration-guide.md)
 - **可觀測性與 AIOps 自動排障**：
