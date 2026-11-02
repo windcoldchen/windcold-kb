@@ -166,6 +166,8 @@ flowchart TD
   無須建立沉重的倒排索引（Inverted Index），大幅縮減磁碟儲存費用。
 - **LogsQL 專屬查詢語法**：
   專為日誌管線設計，直覺支援關鍵字過濾、欄位擷取與時序聚合。
+- **生產級高可用叢集部署**：
+  欲了解如何在雲端 Kubernetes 實現跨可用區（Multi-AZ）資料複寫與自動故障轉移，請參閱 [AWS EKS (Tokyo Region) 部署 VictoriaLogs Cluster 實戰指南](aws-eks-victorialogs-cluster-guide.md)。
 
 ### 5. `vmbackup` & `vmrestore` — 企業級熱備份與災難復原
 
