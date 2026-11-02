@@ -517,5 +517,6 @@ helm upgrade --install vtc vm/victoria-traces-cluster \
 
 ### 6.3 延伸整合與相關文檔
 
+- 欲同步建置高可用時序指標與告警底座，請參閱姊妹篇 [AWS EKS (Tokyo Region) 部署 VictoriaMetrics Stack 跨 AZ 高可用與資料複寫安全實戰指南](aws-eks-victoriametrics-stack-guide.md)。
 - 欲同步建置高可用日誌叢集，請參閱姊妹篇 [AWS EKS (Tokyo Region) 部署 VictoriaLogs Cluster 跨 AZ 高可用與資料複寫安全實戰指南](aws-eks-victorialogs-cluster-guide.md)。
 - 欲了解完整的 Metrics、Logs、Traces 三位一體埋點與 Grafana 跨維度跳轉配置，請參閱 [OpenTelemetry + VictoriaMetrics 全家桶實戰指南](otel-victoriametrics-fullstack-guide.md) 與 [Prometheus+Loki+Tempo vs VM 全家桶評比](prometheus-loki-tempo-vs-victoriametrics.md)。
