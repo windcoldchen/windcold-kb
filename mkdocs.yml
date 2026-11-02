@@ -155,6 +155,7 @@ nav:
       - Pushover 行動推播指南: notes/pushover-guide.md
       - VictoriaMetrics 全家桶架構解析: notes/victoriametrics-ecosystem-guide.md
       - AWS EKS 部署 VictoriaLogs 跨 AZ 叢集: notes/aws-eks-victorialogs-cluster-guide.md
+      - AWS EKS 部署 VictoriaTraces 跨 AZ 叢集: notes/aws-eks-victoriatraces-cluster-guide.md
       - VictoriaMetrics vs OTel 指標採集對比: notes/victoriametrics-vs-opentelemetry-metrics.md
       - OTel vs VictoriaMetrics 全家餐評比: notes/otel-vs-victoriametrics-fullstack.md
       - Prometheus+Loki+Tempo vs VM 全家桶評比: notes/prometheus-loki-tempo-vs-victoriametrics.md
