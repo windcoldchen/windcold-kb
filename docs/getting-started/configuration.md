@@ -100,6 +100,7 @@ windcold-kb/
 | **`autorefs`** | Plugin | 自動交叉參照 Markdown 錨點、程式碼符號與標題。 |
 | **`autolinks`** | Plugin | 自動解析頁面相對連結，直接填寫目標檔名即可自動關聯。 |
 | **`alias`** | Plugin | 支援文章設定別名，透過 `\[\[別名\]\]` 或 `\[\[別名\|自訂文字\]\]` 進行雙向引用。 |
+| **`panzoom`** | Plugin | 支援 Mermaid 流程圖與圖表的互動式拖曳平移（Pan）、縮放（Zoom）與全螢幕檢視。 |
 | **`markdown-checklist`** | Extension | 提供 GFM 核取清單語法（`- [ ]`、`- [x]`）渲染支援。 |
 
 ---
